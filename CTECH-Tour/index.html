@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trường Cao đẳng Kỹ thuật - Công nghệ Bách Khoa (CTECH) - VR Tour 360°</title>
+
+  <!-- Font chữ chuẩn giao diện CTECH -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Montserrat:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+
+  <!-- Kết nối File Giao diện CSS -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Thư viện Đồ họa 3D WebGL Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. LOGO HOA SEN CTECH VECTOR DÙNG CHUNG CHO TOÀN TRANG
+       ======================================================================== -->
+  <svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="ctech-official-logo" viewBox="0 0 1000 1000">
+      <path d="M 458 615 C 350 535, 265 445, 222 312 C 332 342, 412 412, 456 502 C 402 432, 345 398, 282 382 C 295 450, 345 528, 458 615 Z" fill="#f7be27" />
+      <path d="M 372 632 C 242 612, 148 565, 103 469 C 175 478, 238 478, 295 475 L 318 518 C 265 518, 232 518, 198 516 C 235 572, 295 608, 372 632 Z" fill="#f7be27" />
+      <path d="M 266 475 L 332 475 L 368 548 L 288 518 Z" fill="#f7be27" />
+      <path d="M 542 615 C 650 535, 735 445, 778 312 C 668 342, 588 412, 544 502 C 598 432, 655 398, 718 382 C 705 450, 655 528, 542 615 Z" fill="#f7be27" />
+      <path d="M 628 632 C 758 612, 852 565, 897 469 C 825 478, 762 478, 705 475 L 682 518 C 735 518, 768 518, 802 516 C 765 572, 705 608, 628 632 Z" fill="#f7be27" />
+      <path d="M 734 475 L 668 475 L 632 548 L 712 518 Z" fill="#f7be27" />
+      <path d="M 455 603 C 380 562, 340 508, 325 436 C 382 452, 425 482, 456 518 C 418 492, 388 480, 356 476 C 374 528, 408 568, 455 603 Z" fill="#006b3f" />
+      <path d="M 545 603 C 620 562, 660 508, 675 436 C 618 452, 575 482, 544 518 C 582 492, 612 480, 644 476 C 626 528, 592 568, 545 603 Z" fill="#006b3f" />
+      <path d="M 452 440 C 382 405, 392 315, 455 262 C 482 238, 495 222, 500 202 C 505 222, 518 238, 545 262 C 608 315, 618 405, 548 440 C 572 395, 565 335, 520 282 C 505 264, 500 248, 500 232 C 500 248, 495 264, 480 282 C 435 335, 428 395, 452 440 Z" fill="#006b3f" />
+      <circle cx="500" cy="396" r="35" fill="#f7be27" />
+      <path d="M 430 440 C 462 445, 486 465, 500 488 C 514 465, 538 445, 570 440 C 532 485, 512 548, 500 635 C 488 548, 468 485, 430 440 Z" fill="#006b3f" />
+      <text x="500" y="792" text-anchor="middle" fill="#006b3f" font-family="'Montserrat', 'Roboto', Arial, sans-serif" font-weight="800" font-size="188" letter-spacing="4">CTECH</text>
+    </symbol>
+  </svg>
+
+  <!-- ========================================================================
+       2. MÀN HÌNH CHÀO MỪNG MỞ ĐẦU (SPLASH BANNER)
+       ======================================================================== -->
+  <div id="ctech-splash">
+    <!-- Nền đồ họa công nghệ bên phải -->
+    <div class="splash-tech-bg">
+      <div class="splash-rays"></div>
+      <svg width="100%" height="100%" viewBox="0 0 1440 800" preserveAspectRatio="none">
+        <g fill="rgba(6, 95, 70, 0.42)" stroke="rgba(52, 211, 153, 0.32)" stroke-width="1.2">
+          <rect x="860" y="170" width="75" height="560" />
+          <rect x="950" y="100" width="90" height="630" />
+          <rect x="1060" y="220" width="65" height="510" />
+          <rect x="1145" y="140" width="85" height="590" />
+          <rect x="1250" y="195" width="75" height="535" />
+          <rect x="1345" y="260" width="65" height="470" />
+        </g>
+        <g stroke="rgba(167, 243, 208, 0.75)" stroke-width="2" fill="none">
+          <polygon points="810,490 885,435 925,525 845,575" />
+          <polygon points="1245,365 1335,315 1375,405 1285,455" />
+        </g>
+        <g fill="#ffffff">
+          <circle cx="810" cy="490" r="6" /><circle cx="885" cy="435" r="6" />
+          <circle cx="925" cy="525" r="6" /><circle cx="845" cy="575" r="6" />
+          <circle cx="1245" cy="365" r="6" /><circle cx="1335" cy="315" r="6" />
+          <circle cx="1375" cy="405" r="6" /><circle cx="1285" cy="455" r="6" />
+        </g>
+        <g stroke="rgba(250, 204, 21, 0.65)" stroke-width="1.8" fill="none">
+          <polyline points="720,310 830,310 865,275 975,275" />
+          <polyline points="740,360 855,360 890,325 1090,325" />
+        </g>
+        <g fill="#facc15">
+          <circle cx="975" cy="275" r="5.5" />
+          <circle cx="1090" cy="325" r="5.5" />
+        </g>
+      </svg>
+    </div>
+
+    <!-- Khối cắt chéo 3 lát ảnh trường bên trái -->
+    <div class="splash-left-wedge">
+      <div class="wedge-slice wedge-1"></div>
+      <div class="wedge-slice wedge-2"></div>
+      <div class="wedge-slice wedge-3"></div>
+      <div class="wedge-overlay"></div>
+      <svg class="wedge-divider-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line x1="0" y1="18.3" x2="100" y2="34.3" stroke="#ffffff" stroke-width="0.9" />
+        <line x1="0" y1="74.3" x2="100" y2="66.3" stroke="#ffffff" stroke-width="0.9" />
+      </svg>
+    </div>
+
+    <!-- Logo trường chính giữa phía trên -->
+    <div class="splash-top-logo">
+      <svg><use href="#ctech-official-logo"></use></svg>
+      <div>
+        <div class="splash-logo-text-vn" id="splash-logo-vn">TRƯỜNG CAO ĐẲNG KỸ THUẬT - CÔNG NGHỆ BÁCH KHOA</div>
+        <div class="splash-logo-text-en">POLYTECHNIC COLLEGE OF – ENGINEERING AND TECHNOLOGY <b>(CTECH)</b></div>
+      </div>
+    </div>
+
+    <!-- Tiêu đề 3D bên trái -->
+    <div class="splash-left-titles">
+      <div class="script-banner-box">
+        <span id="splash-sub-title">Chuyến tham quan</span>
+      </div>
+      <div class="title-3d-main" id="splash-main-title">
+        TRẢI NGHIỆM<br>THỰC TẾ ẢO
+      </div>
+      <div class="school-ribbon-3d" id="splash-ribbon-title">
+        CAO ĐẲNG <b>CTECH</b>
+      </div>
+    </div>
+
+    <!-- Điểm sáng chạm ngón tay cô gái -->
+    <div class="finger-touch-spark"></div>
+
+    <!-- Nút BẮT ĐẦU bánh răng cam ở trung tâm -->
+    <div class="splash-center-trigger">
+      <div class="tech-pulse-ring"></div>
+      <svg class="tech-gear-svg gear-outer-cw" viewBox="0 0 300 300">
+        <circle cx="150" cy="150" r="142" fill="none" stroke="rgba(110, 231, 183, 0.35)" stroke-width="1.5" stroke-dasharray="12 6" />
+        <circle cx="150" cy="150" r="132" fill="none" stroke="rgba(250, 204, 21, 0.55)" stroke-width="5" stroke-dasharray="4 10" />
+        <circle cx="150" cy="150" r="118" fill="none" stroke="rgba(52, 211, 153, 0.5)" stroke-width="2" stroke-dasharray="28 14" />
+      </svg>
+      <svg class="tech-gear-svg gear-inner-ccw" viewBox="0 0 240 240">
+        <circle cx="120" cy="120" r="108" fill="none" stroke="rgba(255, 255, 255, 0.65)" stroke-width="6" stroke-dasharray="8 9" />
+        <circle cx="120" cy="120" r="96" fill="none" stroke="rgba(250, 204, 21, 0.7)" stroke-width="2" stroke-dasharray="18 8" />
+      </svg>
+
+      <button id="btn-bat-dau" onclick="startTourFromSplash()">
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <defs>
+            <linearGradient id="orangeBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fbbf24" />
+              <stop offset="45%" stop-color="#f97316" />
+              <stop offset="100%" stop-color="#ea580c" />
+            </linearGradient>
+          </defs>
+          <polygon points="100,6 111,17 124,9 131,22 146,18 149,33 165,33 163,48 179,52 173,67 187,75 177,89 189,100 177,111 187,125 173,133 179,148 163,152 165,167 149,167 146,182 131,178 124,191 111,183 100,194 89,183 76,191 69,178 54,182 51,167 35,167 37,152 21,148 27,133 13,125 23,111 11,100 23,89 13,75 27,67 21,52 37,48 35,33 51,33 54,18 69,22 76,9 89,17" fill="url(#orangeBadgeGrad)" stroke="#fef08a" stroke-width="3" />
+          <circle cx="100" cy="100" r="72" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-dasharray="5 4" />
+        </svg>
+        <span class="bat-dau-label" id="splash-btn-text">BẮT<br>ĐẦU</span>
+      </button>
+    </div>
+
+    <!-- Khung bên phải: Hình ảnh cô gái CTECH (Chi 1.png) và hiệu ứng HUD -->
+    <div class="splash-right-student">
+      <div class="hologram-light-pillar">
+        <div class="hologram-scan-line"></div>
+      </div>
+      <svg class="student-cyber-aura" viewBox="0 0 400 400">
+        <circle cx="200" cy="200" r="190" fill="none" stroke="rgba(110, 231, 183, 0.35)" stroke-width="2" stroke-dasharray="18 8 4 8" />
+        <circle cx="200" cy="200" r="172" fill="none" stroke="rgba(250, 204, 21, 0.45)" stroke-width="4" stroke-dasharray="3 12" />
+        <circle cx="200" cy="200" r="150" fill="none" stroke="rgba(52, 211, 153, 0.25)" stroke-width="1.5" />
+      </svg>
+      <svg class="student-cyber-aura-inner" viewBox="0 0 300 300">
+        <circle cx="150" cy="150" r="138" fill="none" stroke="rgba(255, 255, 255, 0.3)" stroke-width="6" stroke-dasharray="10 14" />
+        <circle cx="150" cy="150" r="122" fill="none" stroke="rgba(250, 204, 21, 0.5)" stroke-width="2" stroke-dasharray="40 20" />
+      </svg>
+      <div class="cyber-particles">
+        <div class="cyber-dot" style="width:8px; height:8px; left:10%; top:35%; animation-delay:0s;"></div>
+        <div class="cyber-dot" style="width:10px; height:10px; left:38%; top:24%; animation-delay:0.8s; background:#6ee7b7;"></div>
+        <div class="cyber-dot" style="width:7px; height:7px; left:48%; top:42%; animation-delay:1.5s;"></div>
+        <div class="cyber-dot" style="width:9px; height:9px; left:44%; top:65%; animation-delay:2.1s; background:#6ee7b7;"></div>
+      </div>
+      <div class="hologram-pedestal"></div>
+      <canvas id="student-cutout-canvas"></canvas>
+    </div>
+
+    <!-- Thanh chọn ngôn ngữ căn giữa sát đáy màn hình mở đầu -->
+    <div class="splash-lang-bar">
+      <span id="splash-lang-label">Ngôn ngữ / Language:</span>
+      <button class="lang-circle-btn active" data-lang="vi" onclick="setLanguage('vi')" title="Tiếng Việt">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#da251d"/><polygon points="15,6 17.2,12.5 24,12.5 18.5,16.5 20.6,23 15,19 9.4,23 11.5,16.5 6,12.5 12.8,12.5" fill="#ffff00"/></svg>
+      </button>
+      <button class="lang-circle-btn" data-lang="en" onclick="setLanguage('en')" title="English">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#012169"/><path d="M0,0 L30,30 M30,0 L0,30" stroke="#fff" stroke-width="4.5"/><path d="M15,0 L15,30 M0,15 L30,15" stroke="#fff" stroke-width="7"/><path d="M15,0 L15,30 M0,15 L30,15" stroke="#c8102e" stroke-width="4"/></svg>
+      </button>
+      <button class="lang-circle-btn" data-lang="ja" onclick="setLanguage('ja')" title="日本語">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#ffffff"/><circle cx="15" cy="15" r="8" fill="#bc002d"/></svg>
+      </button>
+      <button class="lang-circle-btn" data-lang="ko" onclick="setLanguage('ko')" title="한국어">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#ffffff"/><circle cx="15" cy="15" r="7.5" fill="#cd2e3a"/><path d="M7.5,15 A7.5,7.5 0 0,0 22.5,15 A3.75,3.75 0 0,0 15,15 A3.75,3.75 0 0,1 7.5,15 Z" fill="#0047a0"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       3. CỘT MENU BÊN TRÁI (SIDEBAR ĐA CẤP CÓ MŨI TÊN ▼)
+       ======================================================================== -->
+  <aside id="sidebar">
+    <div class="sidebar-top-strip"></div>
+    <button id="toggle-sidebar-btn" onclick="toggleSidebarMenu(event)" title="Thu gọn / Mở rộng Menu">◀</button>
+
+    <div class="brand-box" onclick="selectScene('overview', true)" title="Quay về Tổng Quan Trên Cao">
+      <svg class="brand-logo"><use href="#ctech-official-logo"></use></svg>
+      <div>
+        <div class="brand-title-vn" id="ui-brand-vn">TRƯỜNG CAO ĐẲNG KỸ THUẬT<br>- CÔNG NGHỆ BÁCH KHOA</div>
+        <div class="brand-title-en">POLYTECHNIC COLLEGE OF – ENGINEERING<br>AND TECHNOLOGY <b>(CTECH)</b></div>
+      </div>
+    </div>
+
+    <div class="nav-scroll">
+      <ul class="nav-list" id="menu-list"></ul>
+    </div>
+
+    <div class="sidebar-footer" id="ui-sidebar-footer">
+     Được thực hiện bởi sinh viên : Đinh Trung Nguyên Khoa Công Nghệ Thông Lớp TT601-K16
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       4. KHÔNG GIAN 360° WEBGL & LỚP NHÃN TÒA NHÀ N01 - N05
+       ======================================================================== -->
+  <div id="webgl-stage"></div>
+  <div id="hotspots-3d-layer"></div>
+<iframe id="marzipano-frame" src="app-files/index.html" allow="fullscreen"></iframe>
+  <!-- Thanh tiêu đề khu vực & mũi tên đi tiếp dưới đáy -->
+  <div id="bottom-center-walk">
+    <div id="scene-blue-badge" onclick="goForwardScene()">Tổng Quan Trên Cao - Trường Cao đẳng Kỹ thuật - Công nghệ Bách Khoa</div>
+    <button id="ground-3d-arrow" onclick="goForwardScene()" title="Chuyển sang khu vực tiếp theo">
+      <svg width="56" height="36" viewBox="0 0 56 36">
+        <path d="M8 28 L28 13 L48 28" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ========================================================================
+       5. BẢN ĐỒ GÓC TRÊN PHẢI & HỘP THÔNG TIN GÓC DƯỚI PHẢI
+       ======================================================================== -->
+  <button id="open-map-pill" onclick="toggleMinimap(true)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+    </svg>
+    <span id="ui-map-btn">Bản đồ</span>
+  </button>
+
+  <div id="tlu-aerial-minimap" class="closed">
+    <img id="minimap-bg-img" alt="CTECH Aerial Map" />
+    <button id="close-minimap-btn" onclick="toggleMinimap(false)" title="Đóng bản đồ">✕</button>
+    <svg id="minimap-overlay-svg" viewBox="0 0 340 205">
+      <g id="minimap-radar-group" transform="translate(168, 136)">
+        <path id="minimap-radar-cone" d="M0,0 L-26,-44 A50,50 0 0,1 26,-44 Z" fill="rgba(16, 185, 129, 0.48)" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+      </g>
+      <circle class="map-blue-pin active-pin" id="pin-overview" cx="168" cy="136" r="5.5" onclick="selectScene('overview', true)"><title>Tổng Quan Trên Cao</title></circle>
+      <circle class="map-blue-pin" id="pin-n01" cx="125" cy="118" r="5.5" onclick="selectScene('n01', false)"><title>Tòa N01</title></circle>
+      <circle class="map-blue-pin" id="pin-n02" cx="150" cy="118" r="5.5" onclick="selectScene('n02', false)"><title>Tòa N02</title></circle>
+      <circle class="map-blue-pin" id="pin-n05" cx="185" cy="106"  r="5.5" onclick="selectScene('n05', false)"><title>Tòa N05</title></circle>
+      <circle class="map-blue-pin" id="pin-n04" cx="192" cy="138" r="5.5" onclick="selectScene('n04', false)"><title>Tòa N04</title></circle>
+      <circle class="map-blue-pin" id="pin-n03" cx="228" cy="112" r="5.5" onclick="selectScene('n03', false)"><title>Tòa N03</title></circle>
+      <circle class="map-blue-pin" id="pin-square" cx="150" cy="152" r="5.5" onclick="selectScene('square', false)"><title>Quảng Trường CTECH</title></circle>
+      <circle class="map-blue-pin" id="pin-sports" cx="75"  cy="176" r="5.5" onclick="selectScene('sports', false)"><title>Khu Thể Chất & Sân bóng</title></circle>
+    </svg>
+  </div>
+
+  <!-- Hộp thông tin thuyết minh bên phải -->
+  <div id="info-card">
+    <button id="close-info-btn" onclick="toggleInfoCard(event)" title="Đóng hộp thông tin">✕</button>
+    <div id="info-title">Tổng Quan Trên Cao Khuôn Viên CTECH</div>
+    <div id="info-desc"></div>
+  </div>
+
+  <!-- ========================================================================
+       6. TRỢ LÝ ẢO CHATBOX CTECH (TỰ SUY NGHĨ, HỎI ĐÁP PHÒNG BAN & DẪN ĐƯỜNG)
+       ======================================================================== -->
+  <button id="chatbot-launcher" onclick="toggleChatbot(true, event)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+    </svg>
+    <span id="chatbot-btn-label">Trợ lý CTECH</span>
+  </button>
+
+  <div id="ctech-chatbot" class="chatbot-hidden">
+    <div class="chatbot-header">
+      <div class="chatbot-header-info">
+        <div class="chatbot-avatar">
+          <svg width="28" height="28"><use href="#ctech-official-logo"></use></svg>
+        </div>
+        <div>
+          <div class="chatbot-title" id="chatbot-ui-title">Trợ lý ảo CTECH</div>
+          <div class="chatbot-status">● Sẵn sàng hỗ trợ 24/7</div>
+        </div>
+      </div>
+      <button type="button" class="chatbot-close-btn" onclick="toggleChatbot(false, event)" title="Đóng khung chat">✕</button>
+    </div>
+
+    <div id="chatbot-messages"></div>
+
+    <div id="chatbot-quick-chips">
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Giới thiệu về trường CTECH')">🏫 Giới thiệu CTECH</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Các ngành đào tạo của trường')">🎓 34 Ngành đào tạo</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Học phí và học bổng bao nhiêu?')">💰 Học phí & Học bổng</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Ký túc xá có ưu đãi gì không?')">🛏️ KTX & Ưu đãi</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Hệ THPT - Cao đẳng 9+ là gì?')">📘 Hệ 9+ (THCS)</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Cơ hội thực tập và việc làm')">✈️ Thực tập & Việc làm</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Hồ sơ xét tuyển cần những gì?')">📝 Hồ sơ xét tuyển</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Sơ đồ 5 tòa N01 đến N05')">🏢 Sơ đồ N01 - N05</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Phòng y tế và kế toán ở đâu?')">🏥 Y tế & Kế toán</button>
+      <button type="button" class="chat-chip" onclick="sendQuickQuestion('Số điện thoại và địa chỉ liên hệ')">📞 Hotline & Liên hệ</button>
+    </div>
+    <form class="chatbot-input-bar" onsubmit="handleChatSubmit(event)">
+      <input type="text" id="chatbot-input" placeholder="Hỏi về Phòng y tế, Kế toán, N01-N05..." autocomplete="off" />
+      <button type="submit" id="chatbot-send-btn" title="Gửi">➤</button>
+    </form>
+  </div>
+
+  <!-- ========================================================================
+       7. THANH CÔNG CỤ DƯỚI CÙNG (BOTTOM BAR)
+       ======================================================================== -->
+  <footer id="bottom-bar">
+    <div class="toolbar-group">
+      <button class="tool-icon-btn" onclick="reopenSplashScreen()" title="Mở lại Màn hình Chào mừng">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </button>
+      <button class="tool-icon-btn" onclick="selectScene('overview', true)" title="Xoay 360° Tổng Quan Trên Cao">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><polyline points="21 3 21 8 16 8"/>
+        </svg>
+      </button>
+      <button class="tool-icon-btn" onclick="toggleVoiceNarration()" title="Bật/Tắt Giọng đọc thuyết minh">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        </svg>
+      </button>
+      <button class="tool-icon-btn" onclick="toggleInfoCard(event)" title="Ẩn/Hiện Hộp thông tin">
+   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Khung tin nhắn phía sau -->
+  <path d="M9 17H16L20 20V11C20 9.89543 19.1046 9 18 9H17V13C17 15.2091 15.2091 17 13 17H9Z" fill="#86EFAC" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Khung tin nhắn chính phía trước -->
+  <path d="M4 6C4 4.89543 4.89543 4 6 4H15C16.1046 4 17 4.89543 17 6V12C17 13.1046 16.1046 14 15 14H8L4 17V6Z" fill="#22C55E" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 3 chấm tròn bên trong -->
+  <circle cx="8" cy="9" r="1.2" fill="#FFFFFF"/>
+  <circle cx="10.5" cy="9" r="1.2" fill="#FFFFFF"/>
+  <circle cx="13" cy="9" r="1.2" fill="#FFFFFF"/>
+</svg>
+      </button>
+
+      <div class="bar-sep"></div>
+
+      <a class="tool-icon-btn" href="https://ctech.edu.vn" target="_blank" rel="noopener" title="Website: ctech.edu.vn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </a>
+      <a class="tool-icon-btn" href="https://www.facebook.com/ctech.edu.vn" target="_blank" rel="noopener" title="Fanpage CTECH">
+        <span style="font-weight:900; font-size:15px; font-family:serif;">f</span>
+      </a>
+      <a class="yt-badge" href="https://www.youtube.com" target="_blank" rel="noopener" title="YouTube CTECH">▶</a>
+
+      <div class="bar-sep"></div>
+
+      <button class="lang-circle-btn active" data-lang="vi" onclick="setLanguage('vi')" title="Tiếng Việt">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#da251d"/><polygon points="15,6 17.2,12.5 24,12.5 18.5,16.5 20.6,23 15,19 9.4,23 11.5,16.5 6,12.5 12.8,12.5" fill="#ffff00"/></svg>
+      </button>
+      <button class="lang-circle-btn" data-lang="en" onclick="setLanguage('en')" title="English">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#012169"/><path d="M0,0 L30,30 M30,0 L0,30" stroke="#fff" stroke-width="4.5"/><path d="M15,0 L15,30 M0,15 L30,15" stroke="#fff" stroke-width="7"/><path d="M15,0 L15,30 M0,15 L30,15" stroke="#c8102e" stroke-width="4"/></svg>
+      </button>
+      <button class="lang-circle-btn" data-lang="ja" onclick="setLanguage('ja')" title="日本語">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#ffffff"/><circle cx="15" cy="15" r="8" fill="#bc002d"/></svg>
+      </button>
+      <button class="lang-circle-btn" data-lang="ko" onclick="setLanguage('ko')" title="한국어">
+        <svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#ffffff"/><circle cx="15" cy="15" r="7.5" fill="#cd2e3a"/><path d="M7.5,15 A7.5,7.5 0 0,0 22.5,15 A3.75,3.75 0 0,0 15,15 A3.75,3.75 0 0,1 7.5,15 Z" fill="#0047a0"/></svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Kết nối File Dữ liệu (data.js) và File Xử lý (app.js) -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

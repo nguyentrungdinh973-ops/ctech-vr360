@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Project Title</title>
+<meta charset="utf-8">
+<meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui" />
+<style> @-ms-viewport { width: device-width; } </style>
+<link rel="stylesheet" href="vendor/reset.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="multiple-scenes ">
+
+<div id="pano"></div>
+
+<div id="sceneList">
+  <ul class="scenes">
+    
+      <a href="javascript:void(0)" class="scene" data-id="0-snh-n01">
+        <li class="text">Sảnh N01</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="1-hi-trng-n01">
+        <li class="text">Hội trường N01</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="2-bn-ngoi-n01">
+        <li class="text">Bên ngoài N01</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="3-phng-cng-tc-tuyn-sinh">
+        <li class="text">Phòng công tác tuyển sinh</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="4-phng-thc-hnh-my">
+        <li class="text">Phòng thực hành máy</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="5-phng-thc-hng-v-m">
+        <li class="text">Phòng thực hàng về đêm</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="6-phng-ting-nht-ln">
+        <li class="text">Phòng tiếng nhật lớn</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="7-phng-ting-nht-b">
+        <li class="text">Phòng tiếng nhật bé</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="8-trc-mt-ton-n01">
+        <li class="text">Trước mặt toàn N01</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="9-ngoi-cng-chnh">
+        <li class="text">Ngoài cổng chính</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="10-bn-trong-cng">
+        <li class="text">Bên trong cổng</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="11-ngoi-cng-trng-">
+        <li class="text">Ngoài cổng trường </li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="12-mt-bn-tri-ton-n01">
+        <li class="text">Mặt bên trái toàn N01</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="13-mt-chnh-xng--t">
+        <li class="text">Mặt chính xưởng ô tô</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="14-bn-trong-xng--t">
+        <li class="text">Bên trong xưởng ô tô</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="15-tng-hai-ta-n02-trc-ca-phng-in">
+        <li class="text">Tầng hai tòa N02 trước cửa phòng điện</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="16-tng-hai-ta-n02">
+        <li class="text">Tầng hai tòa N02</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="17-bn-trong-phng-in-n02">
+        <li class="text">Bên trong phòng điện N02</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="18-trc-ca-i-vo-sn-cu-lng-n02">
+        <li class="text">Trước cửa đi vào sân cầu lông N02</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="19-sn-cu-lng-n02">
+        <li class="text">Sân cầu lông N02</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="20-tng-ba-ta-n02-k-tc-x">
+        <li class="text">Tầng ba tòa N02 ký túc xá</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="21-hanh-lang-tng-ba-ton-n02">
+        <li class="text">Hanh lang tầng ba toàn N02</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="22-bn-trong-phng-k-tc">
+        <li class="text">Bên trong phòng ký túc</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="23-ng-i-quay-n02">
+        <li class="text">Đường đi quay N02</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="24-ng-ba-gia-cc-ta">
+        <li class="text">Ngã ba giữa các tòa</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="25-trc-ca-ta-n05-cng-tin">
+        <li class="text">Trước cửa tòa N05 căng tin</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="26-cng-tin-n05">
+        <li class="text">Căng tin N05</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="27-phng-gio-vin-k-ton-o-to">
+        <li class="text">Phòng giáo viên kế toán đào tạo</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="28-th-vin-n05">
+        <li class="text">Thư viện N05</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="29-trong-phng-hp-th-vin">
+        <li class="text">Trong phòng họp thư viện</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="30-trc-vm-hoa-bn-tri">
+        <li class="text">Trước vòm hoa bên trái</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="31-trc-bi-rc-gn-n03">
+        <li class="text">Trước bãi rác gần N03</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="32-sau-ta-n03">
+        <li class="text">Sau tòa N03</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="33-sau-ta-n03-s-2">
+        <li class="text">Sau tòa N03 số 2</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="34-trc-ta-n03">
+        <li class="text">Trước tòa N03</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="35-chnh-gia-ta-n03">
+        <li class="text">Chính giữa tòa N03</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="36-phng-thc-hnh-iu-dng">
+        <li class="text">Phòng thực hành điều dưỡng</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="37-phng-thc-hnh-sc-p-trang-im">
+        <li class="text">Phòng thực hành sắc đẹp trang điểm</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="38-phng-thc-hnh-sc-p-iu-tr-da-mt">
+        <li class="text">Phòng thực hành sắc đẹp điều trị da mặt</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="39-phng-chng-by-ca-thit-k--ha">
+        <li class="text">Phòng chưng bầy của thiết kế đồ họa</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="40-tng-hai-ta-n03">
+        <li class="text">Tầng hai tòa N03</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="41-phng-hc-ting-hn-ta-n04">
+        <li class="text">Phòng học tiếng Hán tòa N04</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="42-phng-hc-ta-n03">
+        <li class="text">Phòng học tòa N03</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="43-trc-vm-hoa-bn-phi">
+        <li class="text">Trước vòm hoa bên phải</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="44-bn-trong-vm-hoa-gia-hai-ta">
+        <li class="text">Bên trong vòm hoa giữa hai tòa</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="45-trc-mt-ta-n04">
+        <li class="text">Trước mặt tòa N04</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="46-chnh-gia-ta-n04">
+        <li class="text">Chính giữa tòa N04</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="47-phng-y-t-n04">
+        <li class="text">Phòng y tế N04</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="48-phng-thc-hnh-thit-k--ha-n04">
+        <li class="text">Phòng thực hành thiết kề độ họa N04</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="49-trung-tm-ngoi-ng-tng-2-n04">
+        <li class="text">Trung Tâm ngoại ngữ tầng 2 N04</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="50-phng-thc-hnh-ch-bin">
+        <li class="text">Phòng thực hành chế biến</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="51-ng-ba-gn-qung-trng-ctech">
+        <li class="text">Ngã ba gần quảng trường ctech</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="52-ng-t-gia-cc-ta">
+        <li class="text">Ngã tư giữa các tòa</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="53-on-ng-gn-sn-bng">
+        <li class="text">Đoạn đường gần sân bóng</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="54-gia-sn-ctech">
+        <li class="text">Giữa sân ctech</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="55-qung-trng-ctech">
+        <li class="text">Quảng trường ctech</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="56-on-ng-vo-sn-bng">
+        <li class="text">Đoạn đường vào sân bóng</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="57-v-tr--xem--bng">
+        <li class="text">Vị trí để xem đá bóng</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="58-sn-bng">
+        <li class="text">Sân bóng</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="59-ng-ba-cng-ph-gn-n01">
+        <li class="text">Ngã ba cổng phụ gần N01</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="60-cng-ph">
+        <li class="text">Cổng phụ</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="61-ng-vo-sn-bng">
+        <li class="text">Đường vào sân bóng</li>
+      </a>
+    
+  </ul>
+</div>
+
+<div id="titleBar">
+  <h1 class="sceneName"></h1>
+</div>
+
+<a href="javascript:void(0)" id="autorotateToggle">
+  <img class="icon off" src="img/play.png">
+  <img class="icon on" src="img/pause.png">
+</a>
+
+<a href="javascript:void(0)" id="fullscreenToggle">
+  <img class="icon off" src="img/fullscreen.png">
+  <img class="icon on" src="img/windowed.png">
+</a>
+
+<a href="javascript:void(0)" id="sceneListToggle">
+  <img class="icon off" src="img/expand.png">
+  <img class="icon on" src="img/collapse.png">
+</a>
+
+<a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
+  <img class="icon" src="img/up.png">
+</a>
+<a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
+  <img class="icon" src="img/down.png">
+</a>
+<a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
+  <img class="icon" src="img/left.png">
+</a>
+<a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
+  <img class="icon" src="img/right.png">
+</a>
+<a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
+  <img class="icon" src="img/plus.png">
+</a>
+<a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
+  <img class="icon" src="img/minus.png">
+</a>
+
+<script src="vendor/screenfull.min.js" ></script>
+<script src="vendor/bowser.min.js" ></script>
+<script src="vendor/marzipano.js" ></script>
+
+<script src="data.js"></script>
+<script src="index.js"></script>
+
+</body>
+</html>
