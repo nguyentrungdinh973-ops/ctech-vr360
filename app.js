@@ -3359,7 +3359,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         let urlIdx = 0;
         function tryUrl() {
           if (!isPlayingCloud) return;
-          // Tái sử dụng sharedAudio đã được mở khóa trên điện thoại để không bị chặn Autoplay
           const audio = sharedAudio || new Audio();
           audio.src = urls[urlIdx];
           audio.volume = 1.0;
@@ -3422,21 +3421,34 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRec) {
     const origStart = SpeechRec.prototype.start;
-    const origStop = SpeechRec.prototype.stop;
     const origAbort = SpeechRec.prototype.abort;
 
     SpeechRec.prototype.start = function () {
-      // Dừng giọng đọc đang phát để Micro không thu nhầm tiếng loa
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
       const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
       if (isMobile) {
-        // Bắt buộc tắt continuous trên điện thoại để Android/iOS không bị treo Micro
+        // Bắt buộc để cả 2 là false để điện thoại chờ nói xong cả câu mới gửi 1 lần duy nhất
         this.continuous = false;
-        this.interimResults = true;
+        this.interimResults = false;
       }
       if (!this.lang) {
         this.lang = 'vi-VN';
+      }
+
+      // Chặn triệt để các mảnh chữ tạm thời nếu trình duyệt vẫn bắn ra
+      if (typeof this.onresult === 'function' && !this._finalFilterApplied) {
+        const origOnResult = this.onresult;
+        let lastSentTime = 0;
+        this.onresult = function (event) {
+          const lastRes = event.results[event.results.length - 1];
+          if (lastRes && lastRes.isFinal === false) return;
+          const now = Date.now();
+          if (now - lastSentTime < 800) return;
+          lastSentTime = now;
+          return origOnResult.call(this, event);
+        };
+        this._finalFilterApplied = true;
       }
 
       if (!this._mobilePatched) {
@@ -3451,7 +3463,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         this.addEventListener('error', (e) => {
           this._isRunning = false;
           if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-            showMobileVoiceNotice('⚠️ Vui lòng bấm "Cho phép" Micro hoặc mở web bằng Chrome/Safari (không mở trong Zalo)!');
+            showMobileVoiceNotice('⚠️ Vui lòng bấm "Cho phép" Micro hoặc mở web bằng Chrome/Safari!');
           } else if (e.error === 'no-speech') {
             showMobileVoiceNotice('🎙️ Chưa nghe rõ, anh bấm lại nút Micro và nói gần hơn nhé!');
           }
@@ -3469,7 +3481,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         }
         return origStart.call(this);
       } catch (err) {
-        // Nếu bị kẹt trạng thái cũ trên điện thoại, tự động reset và bật lại
         try {
           origAbort.call(this);
           setTimeout(() => {
@@ -3478,15 +3489,5 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         } catch (e) {}
       }
     };
-  } else {
-    // Trường hợp mở bằng trình duyệt nhúng (như Zalo WebView) không hỗ trợ Web Speech API
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('button, [role="button"]');
-      if (!btn) return;
-      const html = (btn.innerHTML || '') + (btn.id || '') + (btn.className || '') + (btn.title || '');
-      if (/mic|voice|speech|🎙|🎤/i.test(html)) {
-        showMobileVoiceNotice('⚠️ Trình duyệt hiện tại chặn Micro. Hãy bấm dấu (...) góc trên chọn "Mở bằng Chrome/Safari"!');
-      }
-    });
   }
 })();
