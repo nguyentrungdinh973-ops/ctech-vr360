@@ -3605,68 +3605,114 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
-/* === BỘ SỬA LỖI LỆCH NÚT BẢN ĐỒ MINI-MAP TRÊN ĐIỆN THOẠI === */
+/* === BỘ SỬA LỖI LỆCH NÚT BẢN ĐỒ MINI-MAP TRÊN ĐIỆN THOẠI (CHUẨN 100%) === */
 (function () {
-  function fixMobileMinimapAlignment() {
-    // 1. Chèn CSS ép khung bản đồ ôm khít 100% theo chiều cao thực của ảnh
-    if (!document.getElementById('ctech-minimap-fix-style')) {
-      const style = document.createElement('style');
-      style.id = 'ctech-minimap-fix-style';
-      style.textContent = `
-        #minimap, #mini-map, .minimap, .mini-map, .map-container, #map-container, .radar-map,
-        [id*="minimap" i], [class*="minimap" i], [id*="mini-map" i], [class*="mini-map" i] {
-          height: auto !important;
-          min-height: 0 !important;
-          aspect-ratio: auto !important;
+  function syncMinimapExactHeight() {
+    // 1. Tìm tất cả các chấm tọa độ đang dùng vị trí % (left: ..%, top: ..%)
+    const allElements = document.querySelectorAll('div, span, button, a');
+    const pinParents = new Map();
+
+    allElements.forEach((el) => {
+      const s = el.style;
+      if (s && s.left && s.left.includes('%') && s.top && s.top.includes('%')) {
+        const p = el.parentElement;
+        if (p) pinParents.set(p, (pinParents.get(p) || 0) + 1);
+      }
+    });
+
+    const candidateBoxes = new Set();
+
+    // Từ khung chứa các chấm tròn, truy tìm khung Bản đồ ngoài cùng
+    pinParents.forEach((count, pinContainer) => {
+      if (count >= 4) {
+        candidateBoxes.add(pinContainer);
+        if (pinContainer.parentElement && pinContainer.parentElement !== document.body) {
+          candidateBoxes.add(pinContainer.parentElement);
         }
-        #minimap img, #mini-map img, .minimap img, .mini-map img, .map-container img, #map-container img,
-        [id*="minimap" i] > img, [class*="minimap" i] > img, [id*="mini-map" i] > img, [class*="mini-map" i] > img {
-          position: relative !important;
-          display: block !important;
-          width: 100% !important;
-          height: auto !important;
-          object-fit: contain !important;
+      }
+    });
+
+    // Tìm thêm theo vị trí góc trên bên phải màn hình khi bản đồ đang mở
+    document.querySelectorAll('img').forEach((img) => {
+      const r = img.getBoundingClientRect();
+      if (r.width > 100 && r.height > 60 && r.top >= 0 && r.top < 250 && r.right > window.innerWidth * 0.5) {
+        if (img.parentElement) candidateBoxes.add(img.parentElement);
+        if (img.parentElement && img.parentElement.parentElement && img.parentElement.parentElement !== document.body) {
+          candidateBoxes.add(img.parentElement.parentElement);
         }
-      `;
-      document.head.appendChild(style);
-    }
+      }
+    });
 
-    // 2. Tự động tìm đúng khung chứa ảnh bản đồ góc trên bên phải để xóa khoảng trống thừa ở đáy
-    const allImgs = document.querySelectorAll('img');
-    allImgs.forEach((img) => {
-      const src = (img.getAttribute('src') || '').toLowerCase();
-      const parent = img.parentElement;
-      if (!parent) return;
+    candidateBoxes.forEach((box) => {
+      if (!box || box === document.body) return;
+      const img = box.querySelector('img');
+      if (!img) return;
 
-      // Kiểm tra nếu khung chứa ảnh có các chấm tọa độ hoặc nằm ở góc phải trên cùng
-      const rect = parent.getBoundingClientRect();
-      const hasPins = parent.querySelectorAll('div, span, button, a, svg').length >= 4;
-      const isTopRightMap = rect.top < 250 && rect.right > window.innerWidth * 0.5 && rect.width > 120 && rect.width < 500;
+      const boxRect = box.getBoundingClientRect();
+      if (boxRect.width < 100 || boxRect.height === 0) return; // Bản đồ đang đóng
 
-      if ((hasPins && isTopRightMap) || /map|sodo|toancanh|overview/i.test(src + parent.id + parent.className)) {
-        img.style.setProperty('position', 'relative', 'important');
-        img.style.setProperty('display', 'block', 'important');
+      // Tính chiều cao chuẩn theo đúng tỷ lệ ảnh gốc (loại bỏ hoàn toàn vệt xanh thừa ở đáy)
+      const ratio = (img.naturalWidth > 0 && img.naturalHeight > 0)
+        ? (img.naturalHeight / img.naturalWidth)
+        : (9 / 16);
+      const exactHeight = Math.round(boxRect.width * ratio);
+
+      if (exactHeight > 60 && exactHeight < 450) {
+        // Ép khung ngoài của bản đồ cao bằng đúng chiều cao bức ảnh
+        box.style.setProperty('height', exactHeight + 'px', 'important');
+        box.style.setProperty('min-height', exactHeight + 'px', 'important');
+        box.style.setProperty('max-height', exactHeight + 'px', 'important');
+        box.style.setProperty('padding-top', '0px', 'important');
+        box.style.setProperty('padding-bottom', '0px', 'important');
+
+        // Ép bức ảnh lấp đầy 100% khung bản đồ như trên máy tính
         img.style.setProperty('width', '100%', 'important');
-        img.style.setProperty('height', 'auto', 'important');
+        img.style.setProperty('height', exactHeight + 'px', 'important');
+        img.style.setProperty('max-height', exactHeight + 'px', 'important');
+        img.style.setProperty('object-fit', 'fill', 'important');
+        img.style.setProperty('display', 'block', 'important');
 
-        parent.style.setProperty('height', 'auto', 'important');
-        parent.style.setProperty('min-height', '0', 'important');
-
-        // Nếu có thêm 1 lớp vỏ bọc ngoài cùng của bản đồ thì cho ôm khít theo ảnh luôn
-        if (parent.parentElement && parent.parentElement !== document.body) {
-          const grandRect = parent.parentElement.getBoundingClientRect();
-          if (Math.abs(grandRect.width - rect.width) <= 10 && grandRect.height < 400) {
-            parent.parentElement.style.setProperty('height', 'auto', 'important');
-            parent.parentElement.style.setProperty('min-height', '0', 'important');
+        // Nếu ảnh hoặc các chấm nằm trong lớp bọc con thì ép lớp bọc đó khớp 100% luôn
+        Array.from(box.children).forEach((child) => {
+          if (child === img) return;
+          const hasPercentTop = child.style && child.style.top && child.style.top.includes('%');
+          const childPinCount = child.querySelectorAll('[style*="%"]').length;
+          if (!hasPercentTop && (childPinCount >= 4 || child.clientWidth > boxRect.width * 0.7)) {
+            child.style.setProperty('height', exactHeight + 'px', 'important');
+            child.style.setProperty('min-height', exactHeight + 'px', 'important');
+            child.style.setProperty('max-height', exactHeight + 'px', 'important');
+            child.style.setProperty('top', '0px', 'important');
+            child.style.setProperty('left', '0px', 'important');
           }
-        }
+        });
       }
     });
   }
 
-  window.addEventListener('load', fixMobileMinimapAlignment);
-  window.addEventListener('resize', fixMobileMinimapAlignment);
-  window.addEventListener('orientationchange', () => setTimeout(fixMobileMinimapAlignment, 200));
-  document.addEventListener('click', () => setTimeout(fixMobileMinimapAlignment, 50));
-  setTimeout(fixMobileMinimapAlignment, 300);
+  // Kích hoạt ngay khi chạm nút "Bản đồ", khi xoay màn hình và tự động theo dõi DOM
+  window.addEventListener('load', syncMinimapExactHeight);
+  window.addEventListener('resize', syncMinimapExactHeight);
+  window.addEventListener('orientationchange', () => setTimeout(syncMinimapExactHeight, 150));
+  document.addEventListener('click', () => {
+    syncMinimapExactHeight();
+    setTimeout(syncMinimapExactHeight, 50);
+    setTimeout(syncMinimapExactHeight, 200);
+  }, true);
+  document.addEventListener('touchend', () => {
+    setTimeout(syncMinimapExactHeight, 50);
+    setTimeout(syncMinimapExactHeight, 200);
+  }, true);
+
+  if ('MutationObserver' in window) {
+    const observer = new MutationObserver(() => syncMinimapExactHeight());
+    if (document.body) {
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+    } else {
+      window.addEventListener('DOMContentLoaded', () => {
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+      });
+    }
+  }
+
+  setInterval(syncMinimapExactHeight, 500);
 })();
