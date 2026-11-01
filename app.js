@@ -3605,3 +3605,68 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
+/* === BỘ SỬA LỖI LỆCH NÚT BẢN ĐỒ MINI-MAP TRÊN ĐIỆN THOẠI === */
+(function () {
+  function fixMobileMinimapAlignment() {
+    // 1. Chèn CSS ép khung bản đồ ôm khít 100% theo chiều cao thực của ảnh
+    if (!document.getElementById('ctech-minimap-fix-style')) {
+      const style = document.createElement('style');
+      style.id = 'ctech-minimap-fix-style';
+      style.textContent = `
+        #minimap, #mini-map, .minimap, .mini-map, .map-container, #map-container, .radar-map,
+        [id*="minimap" i], [class*="minimap" i], [id*="mini-map" i], [class*="mini-map" i] {
+          height: auto !important;
+          min-height: 0 !important;
+          aspect-ratio: auto !important;
+        }
+        #minimap img, #mini-map img, .minimap img, .mini-map img, .map-container img, #map-container img,
+        [id*="minimap" i] > img, [class*="minimap" i] > img, [id*="mini-map" i] > img, [class*="mini-map" i] > img {
+          position: relative !important;
+          display: block !important;
+          width: 100% !important;
+          height: auto !important;
+          object-fit: contain !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // 2. Tự động tìm đúng khung chứa ảnh bản đồ góc trên bên phải để xóa khoảng trống thừa ở đáy
+    const allImgs = document.querySelectorAll('img');
+    allImgs.forEach((img) => {
+      const src = (img.getAttribute('src') || '').toLowerCase();
+      const parent = img.parentElement;
+      if (!parent) return;
+
+      // Kiểm tra nếu khung chứa ảnh có các chấm tọa độ hoặc nằm ở góc phải trên cùng
+      const rect = parent.getBoundingClientRect();
+      const hasPins = parent.querySelectorAll('div, span, button, a, svg').length >= 4;
+      const isTopRightMap = rect.top < 250 && rect.right > window.innerWidth * 0.5 && rect.width > 120 && rect.width < 500;
+
+      if ((hasPins && isTopRightMap) || /map|sodo|toancanh|overview/i.test(src + parent.id + parent.className)) {
+        img.style.setProperty('position', 'relative', 'important');
+        img.style.setProperty('display', 'block', 'important');
+        img.style.setProperty('width', '100%', 'important');
+        img.style.setProperty('height', 'auto', 'important');
+
+        parent.style.setProperty('height', 'auto', 'important');
+        parent.style.setProperty('min-height', '0', 'important');
+
+        // Nếu có thêm 1 lớp vỏ bọc ngoài cùng của bản đồ thì cho ôm khít theo ảnh luôn
+        if (parent.parentElement && parent.parentElement !== document.body) {
+          const grandRect = parent.parentElement.getBoundingClientRect();
+          if (Math.abs(grandRect.width - rect.width) <= 10 && grandRect.height < 400) {
+            parent.parentElement.style.setProperty('height', 'auto', 'important');
+            parent.parentElement.style.setProperty('min-height', '0', 'important');
+          }
+        }
+      }
+    });
+  }
+
+  window.addEventListener('load', fixMobileMinimapAlignment);
+  window.addEventListener('resize', fixMobileMinimapAlignment);
+  window.addEventListener('orientationchange', () => setTimeout(fixMobileMinimapAlignment, 200));
+  document.addEventListener('click', () => setTimeout(fixMobileMinimapAlignment, 50));
+  setTimeout(fixMobileMinimapAlignment, 300);
+})();
