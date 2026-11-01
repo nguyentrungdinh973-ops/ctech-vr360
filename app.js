@@ -3417,55 +3417,166 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 
-  // 4. SỬA LỖI MICRO THU ÂM CỦA CHATBOT TRÊN ĐIỆN THOẠI (SpeechRecognition)
+  // 4. MICRO 1 CHẠM THÔNG MINH: BẤM 1 LẦN -> NÓI -> DỪNG 1.2 GIÂY TỰ ĐỘNG GỬI LUÔN
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRec) {
     const origStart = SpeechRec.prototype.start;
+    const origStop = SpeechRec.prototype.stop;
     const origAbort = SpeechRec.prototype.abort;
+    let activeRecInstance = null;
+
+    // Hàm tìm đúng ô nhập chat và nút Gửi của Trợ lý ảo CTECH
+    function getChatbotControls() {
+      const input =
+        document.querySelector('input[placeholder*="Hỏi về phòng"]') ||
+        document.querySelector('#chat-input, #chatbot-input, .chat-input input, .chatbot-input input');
+      let sendBtn = null;
+      if (input && input.parentElement) {
+        const btns = Array.from(input.parentElement.querySelectorAll('button'));
+        // Nút gửi là nút nằm cuối cùng bên phải cạnh nút Micro
+        if (btns.length) sendBtn = btns[btns.length - 1];
+      }
+      return { input, sendBtn };
+    }
+
+    // Tự động điền câu vừa nói và kích hoạt gửi lên Chatbot
+    function autoSubmitTranscript(text) {
+      const cleanText = (text || '').trim();
+      if (!cleanText) return;
+
+      const { input, sendBtn } = getChatbotControls();
+      if (input) {
+        input.value = cleanText;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Kích hoạt phím Enter trên ô input
+        const enterEvt = new KeyboardEvent('keydown', {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true,
+          cancelable: true
+        });
+        input.dispatchEvent(enterEvt);
+      }
+
+      // Nếu sau sự kiện Enter mà ô input vẫn còn chữ (chưa gửi), tự động bấm nút Gửi
+      setTimeout(() => {
+        const ctrl = getChatbotControls();
+        if (ctrl.input && ctrl.input.value.trim() !== '' && ctrl.sendBtn) {
+          ctrl.sendBtn.click();
+        }
+      }, 60);
+    }
+
+    // Đảm bảo chỉ cần bấm nút Micro 1 lần là chạy ngay (kể cả khi trạng thái cũ bị kẹt)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button, [role="button"]');
+      if (!btn) return;
+      const sig = ((btn.innerHTML || '') + (btn.id || '') + (btn.className || '') + (btn.title || '')).toLowerCase();
+      const { input, sendBtn } = getChatbotControls();
+      const isChatMicBtn = (input && input.parentElement && input.parentElement.contains(btn) && btn !== sendBtn) ||
+                           /mic|voice|speech|🎙|🎤/.test(sig);
+
+      if (isChatMicBtn && activeRecInstance && !activeRecInstance._isRunning) {
+        setTimeout(() => {
+          if (activeRecInstance && !activeRecInstance._isRunning) {
+            try { activeRecInstance.start(); } catch (err) {}
+          }
+        }, 80);
+      }
+    }, true);
 
     SpeechRec.prototype.start = function () {
+      activeRecInstance = this;
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
-      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-      if (isMobile) {
-        // Bắt buộc để cả 2 là false để điện thoại chờ nói xong cả câu mới gửi 1 lần duy nhất
-        this.continuous = false;
-        this.interimResults = false;
-      }
-      if (!this.lang) {
-        this.lang = 'vi-VN';
+      // Bật interimResults để nhận diện ngay khi ngừng nói trên cả PC & Điện thoại
+      this.continuous = false;
+      this.interimResults = true;
+      if (!this.lang) this.lang = 'vi-VN';
+
+      this._latestTranscript = '';
+      this._hasAutoSent = false;
+      clearTimeout(this._silenceTimer);
+
+      const self = this;
+
+      // Tự động gửi câu hỏi ngay khi ngừng nói 1.2 giây
+      function finalizeAndSend() {
+        if (self._hasAutoSent) return;
+        const text = (self._latestTranscript || '').trim();
+        if (!text) return;
+
+        self._hasAutoSent = true;
+        clearTimeout(self._silenceTimer);
+        try { origStop.call(self); } catch (e) {}
+        showMobileVoiceNotice('✅ Đã nhận: "' + text + '"');
+        autoSubmitTranscript(text);
       }
 
-      // Chặn triệt để các mảnh chữ tạm thời nếu trình duyệt vẫn bắn ra
-      if (typeof this.onresult === 'function' && !this._finalFilterApplied) {
-        const origOnResult = this.onresult;
-        let lastSentTime = 0;
-        this.onresult = function (event) {
-          const lastRes = event.results[event.results.length - 1];
-          if (lastRes && lastRes.isFinal === false) return;
-          const now = Date.now();
-          if (now - lastSentTime < 800) return;
-          lastSentTime = now;
-          return origOnResult.call(this, event);
-        };
-        this._finalFilterApplied = true;
+      // Ghi đè bộ xử lý kết quả để gom chữ mượt mà và không bao giờ gửi lặp
+      if (!this._smartHandlerAttached) {
+        this._smartHandlerAttached = true;
+
+        this.addEventListener('result', (event) => {
+          if (self._hasAutoSent) return;
+
+          let fullText = '';
+          let hasFinalPiece = false;
+          for (let i = 0; i < event.results.length; i++) {
+            fullText += event.results[i][0].transcript;
+            if (event.results[i].isFinal) hasFinalPiece = true;
+          }
+
+          fullText = fullText.trim();
+          if (!fullText) return;
+          self._latestTranscript = fullText;
+
+          // Hiển thị chữ đang nói trực tiếp vào ô input để dễ quan sát
+          const { input } = getChatbotControls();
+          if (input) input.value = fullText;
+
+          // Reset bộ đếm khoảng lặng mỗi khi có âm thanh mới
+          clearTimeout(self._silenceTimer);
+          const waitTime = hasFinalPiece ? 450 : 1200; // Dừng nói 1.2 giây là tự động gửi
+          self._silenceTimer = setTimeout(() => {
+            finalizeAndSend();
+          }, waitTime);
+        }, true);
+      }
+
+      // Vô hiệu hóa onresult gốc để tránh code cũ gửi trùng hoặc tách lẻ từng từ
+      if (typeof this.onresult === 'function') {
+        this._origOnResultBackup = this.onresult;
+        this.onresult = null;
       }
 
       if (!this._mobilePatched) {
         this._mobilePatched = true;
         this.addEventListener('start', () => {
           this._isRunning = true;
-          showMobileVoiceNotice('🎙️ Đang nghe... Anh hãy nói câu hỏi vào Micro nhé!');
+          this._latestTranscript = '';
+          this._hasAutoSent = false;
+          showMobileVoiceNotice('🎙️ Đang nghe... Anh nói xong dừng 1 giây sẽ tự động gửi!');
         });
         this.addEventListener('end', () => {
           this._isRunning = false;
+          clearTimeout(this._silenceTimer);
+          // Nếu trình duyệt tự ngắt khi vừa nói xong mà chưa gửi thì gửi luôn
+          if (!this._hasAutoSent && this._latestTranscript) {
+            finalizeAndSend();
+          }
         });
         this.addEventListener('error', (e) => {
           this._isRunning = false;
+          clearTimeout(this._silenceTimer);
           if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
             showMobileVoiceNotice('⚠️ Vui lòng bấm "Cho phép" Micro hoặc mở web bằng Chrome/Safari!');
           } else if (e.error === 'no-speech') {
-            showMobileVoiceNotice('🎙️ Chưa nghe rõ, anh bấm lại nút Micro và nói gần hơn nhé!');
+            showMobileVoiceNotice('🎙️ Chưa nghe thấy tiếng, anh bấm Micro và nói lại nhé!');
           }
         });
       }
