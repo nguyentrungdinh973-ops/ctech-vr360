@@ -1367,3 +1367,30 @@ body.sidebar-closed #ctech-chatbot { left: 14px; }
   opacity: 1;
   pointer-events: auto;
 }
+/* === TỐI ƯU GIAO DIỆN KHI XOAY NGANG ĐIỆN THOẠI (MOBILE LANDSCAPE) === */
+@media screen and (max-width: 932px) and (orientation: landscape) {
+  /* 1. Thu gọn bảng thuyết minh để không che tầm nhìn 360 độ */
+  .info-box, .scene-info, .hotspot-modal, [class*="info-panel"], [class*="description"] {
+    max-height: 42vh !important;
+    overflow-y: auto !important;
+    font-size: 13px !important;
+    padding: 10px 14px !important;
+    bottom: 48px !important;
+  }
+
+  /* 2. Giữ khung Trợ lý ảo CTECH nằm gọn trong màn hình ngang, không bị mất nút Micro */
+  #chatbot-container, .chatbot-window, .chat-popup, .chat-box, [class*="chatbot-box"] {
+    max-height: 82vh !important;
+    height: 82vh !important;
+    bottom: 8px !important;
+    top: auto !important;
+    width: 360px !important;
+    max-width: 92vw !important;
+  }
+
+  /* 3. Thu nhỏ thanh công cụ dưới đáy và các nút để nhường chỗ cho cảnh 360 */
+  .bottom-bar, .control-bar, footer {
+    height: 38px !important;
+    padding: 2px 8px !important;
+  }
+}
