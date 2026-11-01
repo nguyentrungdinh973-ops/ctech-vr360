@@ -3605,114 +3605,118 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
-/* === BỘ SỬA LỖI LỆCH NÚT BẢN ĐỒ MINI-MAP TRÊN ĐIỆN THOẠI (CHUẨN 100%) === */
+/* === BỘ SỬA LỖI LỆCH TÂM BẢN ĐỒ #minimap-overlay-svg TRÊN ĐIỆN THOẠI === */
 (function () {
-  function syncMinimapExactHeight() {
-    // 1. Tìm tất cả các chấm tọa độ đang dùng vị trí % (left: ..%, top: ..%)
-    const allElements = document.querySelectorAll('div, span, button, a');
-    const pinParents = new Map();
+  let cachedDesktopSize = null;
 
-    allElements.forEach((el) => {
-      const s = el.style;
-      if (s && s.left && s.left.includes('%') && s.top && s.top.includes('%')) {
-        const p = el.parentElement;
-        if (p) pinParents.set(p, (pinParents.get(p) || 0) + 1);
-      }
-    });
+  // 1. Tự động lấy kích thước chuẩn của bản đồ trên Máy tính để làm gốc tọa độ viewBox
+  function getDesktopMinimapBaseSize(mapEl, svgEl) {
+    if (cachedDesktopSize) return cachedDesktopSize;
 
-    const candidateBoxes = new Set();
-
-    // Từ khung chứa các chấm tròn, truy tìm khung Bản đồ ngoài cùng
-    pinParents.forEach((count, pinContainer) => {
-      if (count >= 4) {
-        candidateBoxes.add(pinContainer);
-        if (pinContainer.parentElement && pinContainer.parentElement !== document.body) {
-          candidateBoxes.add(pinContainer.parentElement);
-        }
-      }
-    });
-
-    // Tìm thêm theo vị trí góc trên bên phải màn hình khi bản đồ đang mở
-    document.querySelectorAll('img').forEach((img) => {
-      const r = img.getBoundingClientRect();
-      if (r.width > 100 && r.height > 60 && r.top >= 0 && r.top < 250 && r.right > window.innerWidth * 0.5) {
-        if (img.parentElement) candidateBoxes.add(img.parentElement);
-        if (img.parentElement && img.parentElement.parentElement && img.parentElement.parentElement !== document.body) {
-          candidateBoxes.add(img.parentElement.parentElement);
-        }
-      }
-    });
-
-    candidateBoxes.forEach((box) => {
-      if (!box || box === document.body) return;
-      const img = box.querySelector('img');
-      if (!img) return;
-
-      const boxRect = box.getBoundingClientRect();
-      if (boxRect.width < 100 || boxRect.height === 0) return; // Bản đồ đang đóng
-
-      // Tính chiều cao chuẩn theo đúng tỷ lệ ảnh gốc (loại bỏ hoàn toàn vệt xanh thừa ở đáy)
-      const ratio = (img.naturalWidth > 0 && img.naturalHeight > 0)
-        ? (img.naturalHeight / img.naturalWidth)
-        : (9 / 16);
-      const exactHeight = Math.round(boxRect.width * ratio);
-
-      if (exactHeight > 60 && exactHeight < 450) {
-        // Ép khung ngoài của bản đồ cao bằng đúng chiều cao bức ảnh
-        box.style.setProperty('height', exactHeight + 'px', 'important');
-        box.style.setProperty('min-height', exactHeight + 'px', 'important');
-        box.style.setProperty('max-height', exactHeight + 'px', 'important');
-        box.style.setProperty('padding-top', '0px', 'important');
-        box.style.setProperty('padding-bottom', '0px', 'important');
-
-        // Ép bức ảnh lấp đầy 100% khung bản đồ như trên máy tính
-        img.style.setProperty('width', '100%', 'important');
-        img.style.setProperty('height', exactHeight + 'px', 'important');
-        img.style.setProperty('max-height', exactHeight + 'px', 'important');
-        img.style.setProperty('object-fit', 'fill', 'important');
-        img.style.setProperty('display', 'block', 'important');
-
-        // Nếu ảnh hoặc các chấm nằm trong lớp bọc con thì ép lớp bọc đó khớp 100% luôn
-        Array.from(box.children).forEach((child) => {
-          if (child === img) return;
-          const hasPercentTop = child.style && child.style.top && child.style.top.includes('%');
-          const childPinCount = child.querySelectorAll('[style*="%"]').length;
-          if (!hasPercentTop && (childPinCount >= 4 || child.clientWidth > boxRect.width * 0.7)) {
-            child.style.setProperty('height', exactHeight + 'px', 'important');
-            child.style.setProperty('min-height', exactHeight + 'px', 'important');
-            child.style.setProperty('max-height', exactHeight + 'px', 'important');
-            child.style.setProperty('top', '0px', 'important');
-            child.style.setProperty('left', '0px', 'important');
+    let cssW = 0, cssH = 0;
+    try {
+      for (const sheet of Array.from(document.styleSheets)) {
+        let rules;
+        try { rules = sheet.cssRules || sheet.rules; } catch (e) { continue; }
+        if (!rules) continue;
+        for (const rule of Array.from(rules)) {
+          if (rule.type === 1 && rule.selectorText && rule.selectorText.includes('#tlu-aerial-minimap')) {
+            const wVal = rule.style.width;
+            const hVal = rule.style.height;
+            if (wVal && wVal.endsWith('px')) cssW = parseFloat(wVal);
+            if (hVal && hVal.endsWith('px')) cssH = parseFloat(hVal);
           }
-        });
+        }
       }
-    });
-  }
+    } catch (e) {}
 
-  // Kích hoạt ngay khi chạm nút "Bản đồ", khi xoay màn hình và tự động theo dõi DOM
-  window.addEventListener('load', syncMinimapExactHeight);
-  window.addEventListener('resize', syncMinimapExactHeight);
-  window.addEventListener('orientationchange', () => setTimeout(syncMinimapExactHeight, 150));
-  document.addEventListener('click', () => {
-    syncMinimapExactHeight();
-    setTimeout(syncMinimapExactHeight, 50);
-    setTimeout(syncMinimapExactHeight, 200);
-  }, true);
-  document.addEventListener('touchend', () => {
-    setTimeout(syncMinimapExactHeight, 50);
-    setTimeout(syncMinimapExactHeight, 200);
-  }, true);
-
-  if ('MutationObserver' in window) {
-    const observer = new MutationObserver(() => syncMinimapExactHeight());
-    if (document.body) {
-      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-    } else {
-      window.addEventListener('DOMContentLoaded', () => {
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-      });
+    if (cssW > 100 && cssH > 60) {
+      cachedDesktopSize = { w: cssW, h: cssH };
+      return cachedDesktopSize;
     }
+
+    // Nội suy từ tọa độ chấm Tòa N02 (#pin-n02 nằm ở tâm 50.5% ngang, 53.5% dọc)
+    const pinN02 = document.getElementById('pin-n02');
+    if (pinN02) {
+      const cx = parseFloat(pinN02.getAttribute('cx'));
+      const cy = parseFloat(pinN02.getAttribute('cy'));
+      if (cx > 50 && cy > 30) {
+        cachedDesktopSize = {
+          w: Math.round(cx / 0.505),
+          h: Math.round(cy / 0.535)
+        };
+        return cachedDesktopSize;
+      }
+    }
+
+    cachedDesktopSize = { w: 340, h: 205 };
+    return cachedDesktopSize;
   }
 
-  setInterval(syncMinimapExactHeight, 500);
+  function fixCTECHMinimapSVG() {
+    const mapEl = document.getElementById('tlu-aerial-minimap');
+    const imgEl = document.getElementById('minimap-bg-img');
+    const svgEl = document.getElementById('minimap-overlay-svg');
+    if (!mapEl || !imgEl || !svgEl) return;
+
+    const baseSize = getDesktopMinimapBaseSize(mapEl, svgEl);
+
+    // 2. Gắn viewBox co giãn tự động cho #minimap-overlay-svg để các chấm .map-blue-pin tự thu nhỏ theo màn hình điện thoại
+    if (!svgEl.getAttribute('data-ctech-vb-locked')) {
+      if (!svgEl.getAttribute('viewBox')) {
+        svgEl.setAttribute('viewBox', `0 0 ${baseSize.w} ${baseSize.h}`);
+      }
+      svgEl.setAttribute('preserveAspectRatio', 'none');
+      svgEl.setAttribute('data-ctech-vb-locked', 'true');
+    }
+
+    // 3. Khóa chặt tỷ lệ khung #tlu-aerial-minimap, ảnh #minimap-bg-img và lớp #minimap-overlay-svg trùng khít 100%
+    const rect = mapEl.getBoundingClientRect();
+    if (rect.width > 80) {
+      const exactH = Math.round(rect.width * (baseSize.h / baseSize.w));
+      mapEl.style.setProperty('height', exactH + 'px', 'important');
+      mapEl.style.setProperty('min-height', exactH + 'px', 'important');
+      mapEl.style.setProperty('max-height', exactH + 'px', 'important');
+      mapEl.style.setProperty('padding', '0px', 'important');
+      mapEl.style.setProperty('overflow', 'hidden', 'important');
+    }
+
+    imgEl.style.setProperty('position', 'absolute', 'important');
+    imgEl.style.setProperty('top', '0px', 'important');
+    imgEl.style.setProperty('left', '0px', 'important');
+    imgEl.style.setProperty('width', '100%', 'important');
+    imgEl.style.setProperty('height', '100%', 'important');
+    imgEl.style.setProperty('max-width', 'none', 'important');
+    imgEl.style.setProperty('max-height', 'none', 'important');
+    imgEl.style.setProperty('object-fit', 'fill', 'important');
+    imgEl.style.setProperty('display', 'block', 'important');
+
+    svgEl.style.setProperty('position', 'absolute', 'important');
+    svgEl.style.setProperty('top', '0px', 'important');
+    svgEl.style.setProperty('left', '0px', 'important');
+    svgEl.style.setProperty('width', '100%', 'important');
+    svgEl.style.setProperty('height', '100%', 'important');
+    svgEl.style.setProperty('max-width', 'none', 'important');
+    svgEl.style.setProperty('max-height', 'none', 'important');
+    svgEl.style.setProperty('display', 'block', 'important');
+  }
+
+  window.addEventListener('DOMContentLoaded', fixCTECHMinimapSVG);
+  window.addEventListener('load', fixCTECHMinimapSVG);
+  window.addEventListener('resize', fixCTECHMinimapSVG);
+  window.addEventListener('orientationchange', () => setTimeout(fixCTECHMinimapSVG, 150));
+
+  const origToggleMinimap = window.toggleMinimap;
+  if (typeof origToggleMinimap === 'function') {
+    window.toggleMinimap = function (show) {
+      const res = origToggleMinimap.apply(this, arguments);
+      fixCTECHMinimapSVG();
+      setTimeout(fixCTECHMinimapSVG, 50);
+      setTimeout(fixCTECHMinimapSVG, 250);
+      return res;
+    };
+  }
+
+  document.addEventListener('click', () => setTimeout(fixCTECHMinimapSVG, 50), true);
+  setInterval(fixCTECHMinimapSVG, 400);
 })();
