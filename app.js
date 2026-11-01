@@ -3195,7 +3195,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 })();
 /* === BỘ SỬA LỖI TOÀN DIỆN: GIỌNG ĐỌC 4 NGÔN NGỮ & MICRO CHATBOT TRÊN ĐIỆN THOẠI === */
 (function () {
-  // 1. Cho phép tải luồng âm thanh Google TTS không bị chặn trên di động
+  // 1. Cho phép tải luồng âm thanh Google TTS trên di động không bị chặn
   if (!document.querySelector('meta[name="referrer"]')) {
     const meta = document.createElement('meta');
     meta.name = 'referrer';
@@ -3203,13 +3203,13 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     document.head.appendChild(meta);
   }
 
-  // Hàm hiện thông báo nhỏ trên màn hình điện thoại khi Micro cần cấp quyền
+  // Thông báo trạng thái Micro trên màn hình
   function showMobileVoiceNotice(msg) {
     let toast = document.getElementById('ctech-voice-toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'ctech-voice-toast';
-      toast.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.95);color:#fff;padding:10px 16px;border-radius:20px;font-size:13px;z-index:999999;box-shadow:0 4px 15px rgba(0,0,0,0.3);border:1px solid #22c55e;text-align:center;max-width:90vw;transition:opacity 0.3s;';
+      toast.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.95);color:#fff;padding:10px 16px;border-radius:20px;font-size:13px;z-index:999999;box-shadow:0 4px 15px rgba(0,0,0,0.3);border:1px solid #22c55e;text-align:center;max-width:90vw;transition:opacity 0.3s;pointer-events:none;';
       document.body.appendChild(toast);
     }
     toast.textContent = msg;
@@ -3219,51 +3219,57 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     toast._timer = setTimeout(() => {
       toast.style.opacity = '0';
       setTimeout(() => { toast.style.display = 'none'; }, 300);
-    }, 3500);
+    }, 3000);
   }
 
-  // 2. MỞ KHÓA ÂM THANH TRÊN ĐIỆN THOẠI (Giúp Chatbot trả lời xong tự nói được ngay)
-  let sharedAudio = new Audio();
-  let audioUnlocked = false;
-  function unlockMobileAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    try {
-      sharedAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
-      sharedAudio.volume = 0.01;
-      const p = sharedAudio.play();
-      if (p !== undefined) {
-        p.then(() => {
-          sharedAudio.pause();
-          sharedAudio.volume = 1.0;
-        }).catch(() => {});
-      }
-      if ('speechSynthesis' in window) {
-        const silentUtter = new SpeechSynthesisUtterance('');
-        silentUtter.volume = 0;
-        window.speechSynthesis.speak(silentUtter);
-      }
-    } catch (e) {}
-  }
-  document.addEventListener('touchstart', unlockMobileAudio, { passive: true });
-  document.addEventListener('click', unlockMobileAudio, { passive: true });
+  // 2. HÀM LÀM SẠCH VĂN BẢN TRƯỚC KHI ĐỌC (Chống đọc chữ "chấm" trong 22.000m², dấu &, dấu gạch ngang)
+  function cleanTextForSpeech(rawText, langPrefix) {
+    let t = (rawText || '').trim();
+    if (!t) return '';
 
-  // 3. SỬA LỖI GIỌNG ĐỌC 4 NGÔN NGỮ (VIỆT - ANH - NHẬT - HÀN) & LOA CHATBOT
+    if (langPrefix === 'vi') {
+      // Gộp dấu chấm phân cách hàng nghìn (VD: 22.000 -> 22000) để không đọc là "hai mươi hai chấm"
+      t = t.replace(/(\d+)\.(\d{3})\b/g, '$1$2');
+      t = t.replace(/(\d+)\.(\d{3})\b/g, '$1$2');
+      // Đổi m² / m2 thành mét vuông
+      t = t.replace(/m²|m2\b/gi, ' mét vuông ');
+      // Đổi ký hiệu & thành chữ "và"
+      t = t.replace(/\s*&\s*/g, ' và ');
+      // Đổi dấu gạch ngang – thành dấu phẩy nghỉ nhịp tự nhiên
+      t = t.replace(/\s*[–—-]\s*/g, ', ');
+      // Tách các số bị dính dấu phẩy (VD: 1,2 -> 1, 2)
+      t = t.replace(/(\d),(\d)/g, '$1, $2');
+    } else if (langPrefix === 'en') {
+      t = t.replace(/(\d+)\.(\d{3})\b/g, '$1,$2');
+      t = t.replace(/m²|m2\b/gi, ' square meters ');
+      t = t.replace(/\s*[–—]\s*/g, ', ');
+    }
+
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  // 3. XỬ LÝ GIỌNG ĐỌC THUYẾT MINH (Giữ nguyên giọng gốc trên PC, sửa giọng 4 thứ tiếng trên Điện thoại)
   if ('speechSynthesis' in window) {
     const synth = window.speechSynthesis;
     const origSpeak = synth.speak.bind(synth);
     const origCancel = synth.cancel.bind(synth);
+
     let activeAudio = null;
     let audioQueue = [];
     let isPlayingCloud = false;
+    let currentSessionId = 0;
 
+    // Dừng hoàn toàn luồng âm thanh cũ, tuyệt đối không để dính câu 1 và câu 2
     function stopCloudAudio() {
+      currentSessionId++;
       isPlayingCloud = false;
       audioQueue = [];
       if (activeAudio) {
         try {
+          activeAudio.onended = null;
+          activeAudio.onerror = null;
           activeAudio.pause();
-          activeAudio.currentTime = 0;
+          activeAudio.src = '';
         } catch (e) {}
         activeAudio = null;
       }
@@ -3281,28 +3287,34 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       return 'en';
     }
 
-    function splitTextToChunks(text, maxLen = 160) {
+    // Chỉ cắt câu ở cuối câu dài, KHÔNG cắt ở dấu phẩy hay dấu chấm trong số 22.000
+    function splitTextToChunks(text, maxLen = 180) {
       const clean = (text || '').replace(/\s+/g, ' ').trim();
       if (!clean) return [];
-      const rawParts = clean.split(/(?<=[.!?;。\n,，])\s*/);
+      if (clean.length <= maxLen) return [clean];
+
+      // Chỉ tách tại dấu kết thúc câu (. ! ? 。) mà phía sau là khoảng trắng
+      const sentences = clean.split(/(?<=[.!?。])\s+/);
       const chunks = [];
       let current = '';
-      for (const part of rawParts) {
-        if ((current + ' ' + part).trim().length <= maxLen) {
-          current = (current + ' ' + part).trim();
+
+      for (const s of sentences) {
+        if ((current + ' ' + s).trim().length <= maxLen) {
+          current = (current + ' ' + s).trim();
         } else {
           if (current) chunks.push(current);
-          if (part.length <= maxLen) {
-            current = part;
+          if (s.length <= maxLen) {
+            current = s;
           } else {
-            const words = part.split(' ');
+            // Nếu 1 câu quá dài trên 180 ký tự thì mới tách nhẹ ở dấu phẩy
+            const subParts = s.split(/(?<=[,，;])\s+/);
             current = '';
-            for (const w of words) {
-              if ((current + ' ' + w).trim().length <= maxLen) {
-                current = (current + ' ' + w).trim();
+            for (const sub of subParts) {
+              if ((current + ' ' + sub).trim().length <= maxLen) {
+                current = (current + ' ' + sub).trim();
               } else {
                 if (current) chunks.push(current);
-                current = w;
+                current = sub;
               }
             }
           }
@@ -3312,90 +3324,89 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       return chunks;
     }
 
-    function speakNativeNormalized(utterance, langPrefix) {
-      const voices = synth.getVoices() || [];
-      const matched =
-        voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix) && /google|natural/i.test(v.name)) ||
-        voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix));
-      const langMap = { vi: 'vi-VN', en: 'en-US', ja: 'ja-JP', ko: 'ko-KR' };
-      if (matched) {
-        utterance.voice = matched;
-        utterance.lang = matched.lang;
-      } else {
-        utterance.voice = null;
-        utterance.lang = langMap[langPrefix] || 'vi-VN';
-      }
-      origSpeak(utterance);
-    }
-
-    function playMobileCloudTTS(utterance, langPrefix) {
-      stopCloudAudio();
-      const chunks = splitTextToChunks(utterance.text, 160);
+    // Hàng đợi đọc mượt mà trên Điện thoại (không bao giờ đè 2 giọng lên nhau)
+    function enqueueMobileCloudTTS(utterance, langPrefix) {
+      const cleanedText = cleanTextForSpeech(utterance.text, langPrefix);
+      const chunks = splitTextToChunks(cleanedText, 180);
       if (!chunks.length) return;
 
+      const sessionId = currentSessionId;
+      chunks.forEach((chunk, idx) => {
+        audioQueue.push({
+          text: chunk,
+          lang: langPrefix,
+          onstart: idx === 0 ? utterance.onstart : null,
+          onend: idx === chunks.length - 1 ? utterance.onend : null
+        });
+      });
+
+      if (!isPlayingCloud) {
+        processNextInQueue(sessionId);
+      }
+    }
+
+    function processNextInQueue(sessionId) {
+      if (sessionId !== currentSessionId || !audioQueue.length) {
+        isPlayingCloud = false;
+        return;
+      }
+
       isPlayingCloud = true;
-      audioQueue = chunks;
-      let index = 0;
-
-      if (typeof utterance.onstart === 'function') {
-        try { utterance.onstart(new Event('start')); } catch (e) {}
+      const item = audioQueue.shift();
+      if (typeof item.onstart === 'function') {
+        try { item.onstart(new Event('start')); } catch (e) {}
       }
 
-      function playNext() {
-        if (!isPlayingCloud || index >= audioQueue.length) {
-          isPlayingCloud = false;
-          if (typeof utterance.onend === 'function') {
-            try { utterance.onend(new Event('end')); } catch (e) {}
-          }
-          return;
-        }
+      const q = encodeURIComponent(item.text);
+      const urls = [
+        `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${item.lang}&q=${q}`,
+        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${item.lang}&client=tw-ob&q=${q}`
+      ];
 
-        const q = encodeURIComponent(audioQueue[index]);
-        const urls = [
-          `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${langPrefix}&q=${q}`,
-          `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${q}`
-        ];
+      let urlIdx = 0;
 
-        let urlIdx = 0;
-        function tryUrl() {
-          if (!isPlayingCloud) return;
-          const audio = sharedAudio || new Audio();
-          audio.src = urls[urlIdx];
-          audio.volume = 1.0;
-          audio.playbackRate = 1.05;
-          activeAudio = audio;
+      function tryUrl() {
+        if (sessionId !== currentSessionId) return;
 
-          audio.onended = () => {
-            index++;
-            playNext();
-          };
+        const audio = new Audio(urls[urlIdx]);
+        activeAudio = audio;
+        audio.playbackRate = 1.12; // Tốc độ đọc tự nhiên, rõ ràng, không bị chậm
 
-          audio.onerror = () => {
-            urlIdx++;
-            if (urlIdx < urls.length) {
-              tryUrl();
-            } else {
-              stopCloudAudio();
-              speakNativeNormalized(utterance, langPrefix);
+        let errorHandled = false;
+        function handleFail() {
+          if (errorHandled || sessionId !== currentSessionId) return;
+          errorHandled = true;
+          audio.onended = null;
+          audio.onerror = null;
+          urlIdx++;
+          if (urlIdx < urls.length) {
+            tryUrl();
+          } else {
+            // Bỏ qua đoạn lỗi để đọc tiếp, tuyệt đối không gọi chồng giọng Robot của máy
+            if (typeof item.onend === 'function') {
+              try { item.onend(new Event('end')); } catch (e) {}
             }
-          };
-
-          const playPromise = audio.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(() => {
-              urlIdx++;
-              if (urlIdx < urls.length) {
-                tryUrl();
-              } else {
-                stopCloudAudio();
-                speakNativeNormalized(utterance, langPrefix);
-              }
-            });
+            processNextInQueue(sessionId);
           }
         }
-        tryUrl();
+
+        audio.onended = () => {
+          if (sessionId !== currentSessionId) return;
+          if (typeof item.onend === 'function') {
+            try { item.onend(new Event('end')); } catch (e) {}
+          }
+          processNextInQueue(sessionId);
+        };
+
+        audio.onerror = handleFail;
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(handleFail);
+        }
       }
-      playNext();
+
+      tryUrl();
     }
 
     synth.cancel = function () {
@@ -3404,20 +3415,25 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
 
     synth.speak = function (utterance) {
-      stopCloudAudio();
       if (!utterance || !utterance.text) return;
+
       const langPrefix = detectTargetLang(utterance.text, utterance.lang);
       const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
       if (isMobile) {
+        // Trên điện thoại: dùng luồng Cloud TTS 4 ngôn ngữ đã chống chồng âm thanh
         origCancel();
-        playMobileCloudTTS(utterance, langPrefix);
+        enqueueMobileCloudTTS(utterance, langPrefix);
       } else {
-        speakNativeNormalized(utterance, langPrefix);
+        // Trên máy tính (PC): Giữ nguyên 100% giọng đọc gốc của máy tính, chỉ làm sạch số "22.000m²" để không đọc chữ "chấm"
+        stopCloudAudio();
+        utterance.text = cleanTextForSpeech(utterance.text, langPrefix);
+        origSpeak(utterance);
       }
     };
   }
 
-  // 4. MICRO 1 CHẠM THÔNG MINH: BẤM 1 LẦN -> NÓI -> DỪNG 1.2 GIÂY TỰ ĐỘNG GỬI LUÔN
+  // 4. MICRO 1 CHẠM THÔNG MINH CHO CHATBOT: BẤM 1 LẦN -> NÓI -> DỪNG 1.2 GIÂY TỰ ĐỘNG GỬI
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRec) {
     const origStart = SpeechRec.prototype.start;
@@ -3425,7 +3441,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     const origAbort = SpeechRec.prototype.abort;
     let activeRecInstance = null;
 
-    // Hàm tìm đúng ô nhập chat và nút Gửi của Trợ lý ảo CTECH
     function getChatbotControls() {
       const input =
         document.querySelector('input[placeholder*="Hỏi về phòng"]') ||
@@ -3433,13 +3448,11 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       let sendBtn = null;
       if (input && input.parentElement) {
         const btns = Array.from(input.parentElement.querySelectorAll('button'));
-        // Nút gửi là nút nằm cuối cùng bên phải cạnh nút Micro
         if (btns.length) sendBtn = btns[btns.length - 1];
       }
       return { input, sendBtn };
     }
 
-    // Tự động điền câu vừa nói và kích hoạt gửi lên Chatbot
     function autoSubmitTranscript(text) {
       const cleanText = (text || '').trim();
       if (!cleanText) return;
@@ -3450,7 +3463,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        // Kích hoạt phím Enter trên ô input
         const enterEvt = new KeyboardEvent('keydown', {
           key: 'Enter',
           code: 'Enter',
@@ -3462,7 +3474,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         input.dispatchEvent(enterEvt);
       }
 
-      // Nếu sau sự kiện Enter mà ô input vẫn còn chữ (chưa gửi), tự động bấm nút Gửi
       setTimeout(() => {
         const ctrl = getChatbotControls();
         if (ctrl.input && ctrl.input.value.trim() !== '' && ctrl.sendBtn) {
@@ -3471,7 +3482,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       }, 60);
     }
 
-    // Đảm bảo chỉ cần bấm nút Micro 1 lần là chạy ngay (kể cả khi trạng thái cũ bị kẹt)
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('button, [role="button"]');
       if (!btn) return;
@@ -3493,7 +3503,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       activeRecInstance = this;
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
-      // Bật interimResults để nhận diện ngay khi ngừng nói trên cả PC & Điện thoại
       this.continuous = false;
       this.interimResults = true;
       if (!this.lang) this.lang = 'vi-VN';
@@ -3504,7 +3513,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 
       const self = this;
 
-      // Tự động gửi câu hỏi ngay khi ngừng nói 1.2 giây
       function finalizeAndSend() {
         if (self._hasAutoSent) return;
         const text = (self._latestTranscript || '').trim();
@@ -3517,7 +3525,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         autoSubmitTranscript(text);
       }
 
-      // Ghi đè bộ xử lý kết quả để gom chữ mượt mà và không bao giờ gửi lặp
       if (!this._smartHandlerAttached) {
         this._smartHandlerAttached = true;
 
@@ -3535,20 +3542,17 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
           if (!fullText) return;
           self._latestTranscript = fullText;
 
-          // Hiển thị chữ đang nói trực tiếp vào ô input để dễ quan sát
           const { input } = getChatbotControls();
           if (input) input.value = fullText;
 
-          // Reset bộ đếm khoảng lặng mỗi khi có âm thanh mới
           clearTimeout(self._silenceTimer);
-          const waitTime = hasFinalPiece ? 450 : 1200; // Dừng nói 1.2 giây là tự động gửi
+          const waitTime = hasFinalPiece ? 450 : 1200;
           self._silenceTimer = setTimeout(() => {
             finalizeAndSend();
           }, waitTime);
         }, true);
       }
 
-      // Vô hiệu hóa onresult gốc để tránh code cũ gửi trùng hoặc tách lẻ từng từ
       if (typeof this.onresult === 'function') {
         this._origOnResultBackup = this.onresult;
         this.onresult = null;
@@ -3565,7 +3569,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         this.addEventListener('end', () => {
           this._isRunning = false;
           clearTimeout(this._silenceTimer);
-          // Nếu trình duyệt tự ngắt khi vừa nói xong mà chưa gửi thì gửi luôn
           if (!this._hasAutoSent && this._latestTranscript) {
             finalizeAndSend();
           }
