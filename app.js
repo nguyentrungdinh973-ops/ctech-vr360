@@ -3193,3 +3193,300 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
+/* === BỘ SỬA LỖI TOÀN DIỆN: GIỌNG ĐỌC 4 NGÔN NGỮ & MICRO CHATBOT TRÊN ĐIỆN THOẠI === */
+(function () {
+  // 1. Cho phép tải luồng âm thanh Google TTS không bị chặn trên di động
+  if (!document.querySelector('meta[name="referrer"]')) {
+    const meta = document.createElement('meta');
+    meta.name = 'referrer';
+    meta.content = 'no-referrer';
+    document.head.appendChild(meta);
+  }
+
+  // Hàm hiện thông báo nhỏ trên màn hình điện thoại khi Micro cần cấp quyền
+  function showMobileVoiceNotice(msg) {
+    let toast = document.getElementById('ctech-voice-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'ctech-voice-toast';
+      toast.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.95);color:#fff;padding:10px 16px;border-radius:20px;font-size:13px;z-index:999999;box-shadow:0 4px 15px rgba(0,0,0,0.3);border:1px solid #22c55e;text-align:center;max-width:90vw;transition:opacity 0.3s;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    toast.style.display = 'block';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => { toast.style.display = 'none'; }, 300);
+    }, 3500);
+  }
+
+  // 2. MỞ KHÓA ÂM THANH TRÊN ĐIỆN THOẠI (Giúp Chatbot trả lời xong tự nói được ngay)
+  let sharedAudio = new Audio();
+  let audioUnlocked = false;
+  function unlockMobileAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    try {
+      sharedAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      sharedAudio.volume = 0.01;
+      const p = sharedAudio.play();
+      if (p !== undefined) {
+        p.then(() => {
+          sharedAudio.pause();
+          sharedAudio.volume = 1.0;
+        }).catch(() => {});
+      }
+      if ('speechSynthesis' in window) {
+        const silentUtter = new SpeechSynthesisUtterance('');
+        silentUtter.volume = 0;
+        window.speechSynthesis.speak(silentUtter);
+      }
+    } catch (e) {}
+  }
+  document.addEventListener('touchstart', unlockMobileAudio, { passive: true });
+  document.addEventListener('click', unlockMobileAudio, { passive: true });
+
+  // 3. SỬA LỖI GIỌNG ĐỌC 4 NGÔN NGỮ (VIỆT - ANH - NHẬT - HÀN) & LOA CHATBOT
+  if ('speechSynthesis' in window) {
+    const synth = window.speechSynthesis;
+    const origSpeak = synth.speak.bind(synth);
+    const origCancel = synth.cancel.bind(synth);
+    let activeAudio = null;
+    let audioQueue = [];
+    let isPlayingCloud = false;
+
+    function stopCloudAudio() {
+      isPlayingCloud = false;
+      audioQueue = [];
+      if (activeAudio) {
+        try {
+          activeAudio.pause();
+          activeAudio.currentTime = 0;
+        } catch (e) {}
+        activeAudio = null;
+      }
+    }
+
+    function detectTargetLang(text, rawLang) {
+      const t = text || '';
+      if (/[\uac00-\ud7af\u1100-\u11ff]/.test(t)) return 'ko';
+      if (/[\u3040-\u30ff\u4e00-\u9faf]/.test(t)) return 'ja';
+      if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(t)) return 'vi';
+      const l = (rawLang || '').toLowerCase();
+      if (l.startsWith('ko')) return 'ko';
+      if (l.startsWith('ja')) return 'ja';
+      if (l.startsWith('vi')) return 'vi';
+      return 'en';
+    }
+
+    function splitTextToChunks(text, maxLen = 160) {
+      const clean = (text || '').replace(/\s+/g, ' ').trim();
+      if (!clean) return [];
+      const rawParts = clean.split(/(?<=[.!?;。\n,，])\s*/);
+      const chunks = [];
+      let current = '';
+      for (const part of rawParts) {
+        if ((current + ' ' + part).trim().length <= maxLen) {
+          current = (current + ' ' + part).trim();
+        } else {
+          if (current) chunks.push(current);
+          if (part.length <= maxLen) {
+            current = part;
+          } else {
+            const words = part.split(' ');
+            current = '';
+            for (const w of words) {
+              if ((current + ' ' + w).trim().length <= maxLen) {
+                current = (current + ' ' + w).trim();
+              } else {
+                if (current) chunks.push(current);
+                current = w;
+              }
+            }
+          }
+        }
+      }
+      if (current) chunks.push(current);
+      return chunks;
+    }
+
+    function speakNativeNormalized(utterance, langPrefix) {
+      const voices = synth.getVoices() || [];
+      const matched =
+        voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix) && /google|natural/i.test(v.name)) ||
+        voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix));
+      const langMap = { vi: 'vi-VN', en: 'en-US', ja: 'ja-JP', ko: 'ko-KR' };
+      if (matched) {
+        utterance.voice = matched;
+        utterance.lang = matched.lang;
+      } else {
+        utterance.voice = null;
+        utterance.lang = langMap[langPrefix] || 'vi-VN';
+      }
+      origSpeak(utterance);
+    }
+
+    function playMobileCloudTTS(utterance, langPrefix) {
+      stopCloudAudio();
+      const chunks = splitTextToChunks(utterance.text, 160);
+      if (!chunks.length) return;
+
+      isPlayingCloud = true;
+      audioQueue = chunks;
+      let index = 0;
+
+      if (typeof utterance.onstart === 'function') {
+        try { utterance.onstart(new Event('start')); } catch (e) {}
+      }
+
+      function playNext() {
+        if (!isPlayingCloud || index >= audioQueue.length) {
+          isPlayingCloud = false;
+          if (typeof utterance.onend === 'function') {
+            try { utterance.onend(new Event('end')); } catch (e) {}
+          }
+          return;
+        }
+
+        const q = encodeURIComponent(audioQueue[index]);
+        const urls = [
+          `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${langPrefix}&q=${q}`,
+          `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${q}`
+        ];
+
+        let urlIdx = 0;
+        function tryUrl() {
+          if (!isPlayingCloud) return;
+          // Tái sử dụng sharedAudio đã được mở khóa trên điện thoại để không bị chặn Autoplay
+          const audio = sharedAudio || new Audio();
+          audio.src = urls[urlIdx];
+          audio.volume = 1.0;
+          audio.playbackRate = 1.05;
+          activeAudio = audio;
+
+          audio.onended = () => {
+            index++;
+            playNext();
+          };
+
+          audio.onerror = () => {
+            urlIdx++;
+            if (urlIdx < urls.length) {
+              tryUrl();
+            } else {
+              stopCloudAudio();
+              speakNativeNormalized(utterance, langPrefix);
+            }
+          };
+
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              urlIdx++;
+              if (urlIdx < urls.length) {
+                tryUrl();
+              } else {
+                stopCloudAudio();
+                speakNativeNormalized(utterance, langPrefix);
+              }
+            });
+          }
+        }
+        tryUrl();
+      }
+      playNext();
+    }
+
+    synth.cancel = function () {
+      stopCloudAudio();
+      origCancel();
+    };
+
+    synth.speak = function (utterance) {
+      stopCloudAudio();
+      if (!utterance || !utterance.text) return;
+      const langPrefix = detectTargetLang(utterance.text, utterance.lang);
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      if (isMobile) {
+        origCancel();
+        playMobileCloudTTS(utterance, langPrefix);
+      } else {
+        speakNativeNormalized(utterance, langPrefix);
+      }
+    };
+  }
+
+  // 4. SỬA LỖI MICRO THU ÂM CỦA CHATBOT TRÊN ĐIỆN THOẠI (SpeechRecognition)
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRec) {
+    const origStart = SpeechRec.prototype.start;
+    const origStop = SpeechRec.prototype.stop;
+    const origAbort = SpeechRec.prototype.abort;
+
+    SpeechRec.prototype.start = function () {
+      // Dừng giọng đọc đang phát để Micro không thu nhầm tiếng loa
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      if (isMobile) {
+        // Bắt buộc tắt continuous trên điện thoại để Android/iOS không bị treo Micro
+        this.continuous = false;
+        this.interimResults = true;
+      }
+      if (!this.lang) {
+        this.lang = 'vi-VN';
+      }
+
+      if (!this._mobilePatched) {
+        this._mobilePatched = true;
+        this.addEventListener('start', () => {
+          this._isRunning = true;
+          showMobileVoiceNotice('🎙️ Đang nghe... Anh hãy nói câu hỏi vào Micro nhé!');
+        });
+        this.addEventListener('end', () => {
+          this._isRunning = false;
+        });
+        this.addEventListener('error', (e) => {
+          this._isRunning = false;
+          if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            showMobileVoiceNotice('⚠️ Vui lòng bấm "Cho phép" Micro hoặc mở web bằng Chrome/Safari (không mở trong Zalo)!');
+          } else if (e.error === 'no-speech') {
+            showMobileVoiceNotice('🎙️ Chưa nghe rõ, anh bấm lại nút Micro và nói gần hơn nhé!');
+          }
+        });
+      }
+
+      try {
+        if (this._isRunning) {
+          origAbort.call(this);
+          this._isRunning = false;
+          setTimeout(() => {
+            try { origStart.call(this); } catch (err) {}
+          }, 150);
+          return;
+        }
+        return origStart.call(this);
+      } catch (err) {
+        // Nếu bị kẹt trạng thái cũ trên điện thoại, tự động reset và bật lại
+        try {
+          origAbort.call(this);
+          setTimeout(() => {
+            try { origStart.call(this); } catch (e2) {}
+          }, 200);
+        } catch (e) {}
+      }
+    };
+  } else {
+    // Trường hợp mở bằng trình duyệt nhúng (như Zalo WebView) không hỗ trợ Web Speech API
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button, [role="button"]');
+      if (!btn) return;
+      const html = (btn.innerHTML || '') + (btn.id || '') + (btn.className || '') + (btn.title || '');
+      if (/mic|voice|speech|🎙|🎤/i.test(html)) {
+        showMobileVoiceNotice('⚠️ Trình duyệt hiện tại chặn Micro. Hãy bấm dấu (...) góc trên chọn "Mở bằng Chrome/Safari"!');
+      }
+    });
+  }
+})();
