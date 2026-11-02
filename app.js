@@ -3785,3 +3785,182 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   window.addEventListener('resize', lockMinimapSVGViewBox);
   document.addEventListener('click', () => setTimeout(lockMinimapSVGViewBox, 30), true);
 })();
+/* === HIỆU ỨNG DI CHUYỂN BƯỚC ĐI GOOGLE STREET VIEW (WALK-ZOOM & 3D FLOOR ARROW) === */
+(function () {
+  function attachStreetViewWalkToMarzipano() {
+    const frame = document.getElementById('marzipano-frame');
+    if (!frame) return;
+
+    let innerDoc, innerWin;
+    try {
+      innerDoc = frame.contentDocument || frame.contentWindow?.document;
+      innerWin = frame.contentWindow;
+    } catch (e) {
+      return;
+    }
+    if (!innerDoc || !innerDoc.head || !innerDoc.body) return;
+
+    // 1. Chèn CSS biến nút chuyển cảnh thành Mũi tên kép 3D dưới sàn + Nhãn tên luôn hiển thị giống video
+    if (!innerDoc.getElementById('ctech-streetview-style')) {
+      const svStyle = innerDoc.createElement('style');
+      svStyle.id = 'ctech-streetview-style';
+      svStyle.textContent = `
+        /* Cho phép khung cảnh 360 phóng mượt khi bước đi */
+        #pano {
+          will-change: transform, filter, opacity;
+          transform-origin: 50% 50%;
+        }
+
+        /* Khung chứa mũi tên dưới sàn kiểu Google Street View */
+        .link-hotspot {
+          width: 76px !important;
+          height: 76px !important;
+          margin-left: -38px !important;
+          margin-top: -38px !important;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          overflow: visible !important;
+          cursor: pointer !important;
+          z-index: 30 !important;
+        }
+
+        /* Mũi tên kép (Chevron) nằm nghiêng 3D trên mặt đất và nhấp nhô nhẹ */
+        .link-hotspot-icon {
+          width: 64px !important;
+          height: 64px !important;
+          margin: 6px auto 0 auto !important;
+          display: block !important;
+          filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.65));
+          transition: transform 0.25s ease, filter 0.25s ease !important;
+          animation: ctechFloorPulse 1.8s ease-in-out infinite !important;
+          content: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g transform='translate(0, 12) scale(1, 0.62)'><path d='M18 74 L50 44 L82 74' fill='none' stroke='rgba(0,0,0,0.45)' stroke-width='14' stroke-linecap='round' stroke-linejoin='round'/><path d='M18 70 L50 40 L82 70' fill='none' stroke='%23ffffff' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/><path d='M26 46 L50 22 L74 46' fill='none' stroke='rgba(0,0,0,0.45)' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/><path d='M26 42 L50 18 L74 42' fill='none' stroke='%23ffffff' stroke-width='8.5' stroke-linecap='round' stroke-linejoin='round'/></g></svg>") !important;
+        }
+
+        .link-hotspot:hover .link-hotspot-icon {
+          filter: drop-shadow(0 8px 16px rgba(34, 197, 94, 0.9)) brightness(1.15) !important;
+          transform: scale(1.18) translateY(-4px) !important;
+        }
+
+        @keyframes ctechFloorPulse {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-5px) scale(1.06); }
+        }
+
+        /* Nhãn tên khu vực luôn hiển thị nổi phía trên mũi tên (giống nhãn màu xanh trong video) */
+        .link-hotspot-tooltip {
+          position: absolute !important;
+          bottom: 68px !important;
+          left: 50% !important;
+          top: auto !important;
+          right: auto !important;
+          transform: translateX(-50%) !important;
+          width: max-content !important;
+          max-width: 220px !important;
+          padding: 6px 14px !important;
+          border-radius: 6px !important;
+          background: rgba(0, 107, 63, 0.94) !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
+          color: #ffffff !important;
+          font-family: system-ui, -apple-system, sans-serif !important;
+          font-size: 13px !important;
+          font-weight: 700 !important;
+          line-height: 1.25 !important;
+          text-align: center !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+          transition: background 0.2s ease, transform 0.2s ease !important;
+        }
+
+        .link-hotspot:hover .link-hotspot-tooltip {
+          background: #0d47a1 !important;
+          border-color: #fde047 !important;
+          color: #fde047 !important;
+          transform: translateX(-50%) translateY(-3px) scale(1.04) !important;
+        }
+      `;
+      innerDoc.head.appendChild(svStyle);
+    }
+
+    // 2. Gắn bộ điều khiển "Lao tới điểm vừa bấm (Street View Walk-Zoom)"
+    if (!innerDoc._ctechStreetViewBound) {
+      innerDoc._ctechStreetViewBound = true;
+      let isWalking = false;
+
+      innerDoc.addEventListener(
+        'click',
+        function (e) {
+          if (e._streetViewBypass) return;
+          const hotspot = e.target.closest('.link-hotspot');
+          if (!hotspot) return;
+
+          // Chặn chuyển cảnh tức thời để chạy hiệu ứng lao tới trước
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          if (isWalking) return;
+          isWalking = true;
+
+          const panoEl =
+            innerDoc.getElementById('pano') ||
+            innerDoc.querySelector('canvas')?.parentElement ||
+            innerDoc.body;
+
+          // Lấy đúng tọa độ mũi tên vừa bấm trên màn hình làm tâm phóng (Walk Target)
+          const rect = hotspot.getBoundingClientRect();
+          const targetX = Math.round(rect.left + rect.width / 2);
+          const targetY = Math.round(rect.top + rect.height / 2);
+
+          // Pha 1: Lao thẳng về phía mũi tên vừa bấm (0.36 giây)
+          panoEl.style.transition = 'none';
+          panoEl.style.transformOrigin = `${targetX}px ${targetY}px`;
+          panoEl.style.transform = 'scale(1)';
+          panoEl.style.filter = 'brightness(1)';
+          void panoEl.offsetWidth;
+
+          panoEl.style.transition =
+            'transform 0.38s cubic-bezier(0.35, 0, 0.2, 1), filter 0.38s ease';
+          panoEl.style.transform = 'scale(1.88)';
+          panoEl.style.filter = 'brightness(1.08)';
+
+          // Pha 2: Kích hoạt chuyển sang ảnh 360 mới và hạ nhẹ tỷ lệ zoom về 1.0
+          setTimeout(() => {
+            const bypassEvt = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: innerWin
+            });
+            bypassEvt._streetViewBypass = true;
+            hotspot.dispatchEvent(bypassEvt);
+
+            panoEl.style.transition = 'none';
+            panoEl.style.transformOrigin = '50% 50%';
+            panoEl.style.transform = 'scale(1.16)';
+            void panoEl.offsetWidth;
+
+            panoEl.style.transition =
+              'transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), filter 0.45s ease';
+            panoEl.style.transform = 'scale(1)';
+            panoEl.style.filter = 'brightness(1)';
+
+            setTimeout(() => {
+              isWalking = false;
+            }, 480);
+          }, 340);
+        },
+        true
+      );
+    }
+  }
+
+  // Tự động gắn vào #marzipano-frame ngay khi tải xong
+  window.addEventListener('DOMContentLoaded', attachStreetViewWalkToMarzipano);
+  window.addEventListener('load', attachStreetViewWalkToMarzipano);
+  setInterval(attachStreetViewWalkToMarzipano, 600);
+})();
