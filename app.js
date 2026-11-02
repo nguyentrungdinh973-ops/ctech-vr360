@@ -3605,3 +3605,206 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
+/* === BỘ TỐI ƯU ĐA THIẾT BỊ: CHUẨN MỌI DÒNG ĐIỆN THOẠI & GIỮ NGUYÊN PC === */
+(function setupUniversalResponsivePCAndMobile() {
+  // 1. Hàm tính độ rộng góc nhìn (uScale) tự động theo tỷ lệ màn hình từng máy
+  function getResponsiveScale(baseScale) {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const aspect = w / Math.max(1, h);
+
+    // Trên Máy tính & màn hình ngang rộng: Giữ nguyên 100% thông số gốc
+    if (w > 768 && aspect >= 1.1) {
+      return baseScale;
+    }
+
+    // Trên Điện thoại cầm dọc (aspect từ 0.43 đến 0.65): Mở rộng góc nhìn để thấy trọn 5 tòa nhà
+    if (aspect < 1.0) {
+      const mobileFactor = Math.min(1.52, Math.max(1.22, 0.92 / Math.pow(aspect, 0.55)));
+      return Math.min(1.45, baseScale * mobileFactor);
+    }
+
+    // Trên Điện thoại xoay ngang hoặc iPad nhỏ
+    return Math.min(1.25, baseScale * 1.12);
+  }
+
+  // 2. Bọc hàm selectScene để tự động áp dụng góc nhìn chuẩn khi chuyển cảnh trên điện thoại
+  const origSelectScene = window.selectScene;
+  if (typeof origSelectScene === 'function') {
+    window.selectScene = function (sceneKey, playLittlePlanetIntro, specificMarzipanoId) {
+      const res = origSelectScene.apply(this, arguments);
+
+      const resolvedKey = (typeof SCENES === 'object' && SCENES[sceneKey]) ? sceneKey : 'overview';
+      const data = typeof SCENES === 'object' ? SCENES[resolvedKey] : null;
+
+      if (data && !specificMarzipanoId && !data.marzipanoId) {
+        const adaptedScale = getResponsiveScale(data.scale || 0.88);
+        targetScale = adaptedScale;
+        if (!playLittlePlanetIntro && typeof uniforms !== 'undefined' && uniforms.uScale) {
+          startScale = uniforms.uScale.value;
+        }
+        // Hạ nhẹ góc nhìn dọc 1 chút trên điện thoại ở cảnh Tổng quan để tâm màn hình rơi đúng vào 5 tòa nhà
+        if (window.innerWidth <= 768 && window.innerHeight > window.innerWidth && resolvedKey === 'overview') {
+          targetPitch = (0.5 - (data.lookAtVFromTop + 0.035)) * Math.PI;
+        }
+      }
+
+      // Trên điện thoại màn hình nhỏ: Tự đóng Minimap khi mới vào để không che cảnh
+      if (window.innerWidth <= 768 && playLittlePlanetIntro) {
+        const mapEl = document.getElementById('tlu-aerial-minimap');
+        if (mapEl) mapEl.classList.add('closed');
+      }
+
+      return res;
+    };
+  }
+
+  // 3. Tự động cập nhật lại tỷ lệ khung hình khi xoay dọc/ngang điện thoại
+  window.addEventListener('resize', () => {
+    if (typeof currentMarzipanoId !== 'undefined' && !currentMarzipanoId && typeof SCENES === 'object') {
+      const curData = SCENES[currentSceneKey] || SCENES.overview;
+      if (curData && typeof uniforms !== 'undefined' && uniforms.uScale && !isAnimatingCamera) {
+        targetScale = getResponsiveScale(curData.scale || 0.88);
+        uniforms.uScale.value = targetScale;
+      }
+    }
+  });
+})();
+/* === SỬA LỖI LỆCH NÚT TÒA NHÀ & GÓC NHÌN RIÊNG CHO ĐIỆN THOẠI (GIỮ NGUYÊN PC) === */
+(function fixMobileButtonsAlignmentOnly() {
+  // 1. Lưu lại hàm tính tọa độ nút gốc của Máy tính để PC giữ nguyên 100%
+  const desktopUpdateHotspots = window.updateHotspotsScreenCoords;
+
+  window.updateHotspotsScreenCoords = function () {
+    // NẾU LÀ MÁY TÍNH (Màn hình > 768px): Chạy nguyên bản code cũ của máy tính
+    if (window.innerWidth > 768) {
+      if (typeof desktopUpdateHotspots === 'function') {
+        desktopUpdateHotspots();
+      }
+      return;
+    }
+
+    // NẾU LÀ ĐIỆN THOẠI (Màn hình <= 768px): Đồng bộ chuẩn tâm từng tòa nhà
+    if (!uniforms || uniforms.uPlanetFactor.value > 0.15) return;
+
+    const stageEl = document.getElementById('webgl-stage');
+    const w = (stageEl && stageEl.clientWidth)  ? stageEl.clientWidth  : window.innerWidth;
+    const h = (stageEl && stageEl.clientHeight) ? stageEl.clientHeight : window.innerHeight;
+
+    // Đồng bộ tỷ lệ khung hình thực tế trên điện thoại (tránh lệch do thanh địa chỉ trình duyệt)
+    uniforms.uAspect.value = w / Math.max(1, h);
+
+    const uYaw    = uniforms.uYaw.value;
+    const uPitch  = uniforms.uPitch.value;
+    const uAspect = uniforms.uAspect.value;
+    const uScale  = uniforms.uScale.value;
+
+    const cy = Math.cos(uYaw),   sy = Math.sin(uYaw);
+    const cp = Math.cos(uPitch), sp = Math.sin(uPitch);
+
+    // Tỷ lệ thu phóng gọn gàng trên màn hình điện thoại
+    const mobileScale = Math.max(0.72, Math.min(0.92, 0.88 / Math.pow(uScale, 0.3)));
+
+    activeHotspotItems.forEach(item => {
+      const wx = Math.cos(item.lat) * Math.sin(item.lon);
+      const wy = Math.sin(item.lat);
+      const wz = Math.cos(item.lat) * Math.cos(item.lon);
+
+      const d1x = wx * cy - wz * sy;
+      const d1y = wy;
+      const d1z = wx * sy + wz * cy;
+
+      const dirX = d1x;
+      const dirY = d1y * cp - d1z * sp;
+      const dirZ = d1y * sp + d1z * cp;
+
+      if (dirZ <= 0.15) {
+        item.el.style.display = 'none';
+        return;
+      }
+
+      const px = dirX / dirZ;
+      const py = dirY / dirZ;
+
+      const screenU = 0.5 + px / (uAspect * uScale);
+      const screenV = 0.5 + py / uScale;
+
+      // Ẩn nút khi tòa nhà xoay ra ngoài khung nhìn điện thoại
+      if (screenU < 0.04 || screenU > 0.96 || screenV < 0.06 || screenV > 0.94) {
+        item.el.style.display = 'none';
+        return;
+      }
+
+      item.el.style.display = 'block';
+
+      // Đặt nút ngay chính giữa tọa độ tòa nhà (Bỏ safeX để nút không bị trượt khỏi tòa nhà)
+      const exactX = screenU * w;
+      const exactY = (1.0 - screenV) * h;
+
+      item.el.style.left = exactX + 'px';
+      item.el.style.top  = exactY + 'px';
+      item.el.style.transformOrigin = 'center center';
+      item.el.style.transform = `translate(-50%, -50%) scale(${mobileScale.toFixed(2)})`;
+    });
+  };
+
+  // 2. Chỉnh lại góc nhìn Camera trên Điện thoại để không bị ngẩng lên trời như Hình 2
+  const origSelectScene = window.selectScene;
+  if (typeof origSelectScene === 'function') {
+    window.selectScene = function (sceneKey, playLittlePlanetIntro, specificMarzipanoId) {
+      const result = origSelectScene.apply(this, arguments);
+
+      // Chỉ căn chỉnh lại góc nhìn khi đang mở trên Điện thoại (<= 768px)
+      if (window.innerWidth <= 768 && !specificMarzipanoId) {
+        const resolvedKey = (typeof SCENES === 'object' && SCENES[sceneKey]) ? sceneKey : 'overview';
+        const data = typeof SCENES === 'object' ? SCENES[resolvedKey] : null;
+
+        if (data && !data.marzipanoId) {
+          // Mở rộng góc nhìn ngang trên màn hình dọc để thấy đủ các tòa nhà
+          targetScale = Math.min(1.38, (data.scale || 0.88) * 1.42);
+          // Hạ nhẹ góc nhìn xuống đúng tâm cụm 5 tòa nhà (không nhìn lên mây)
+          targetPitch = (0.5 - (data.lookAtVFromTop + 0.03)) * Math.PI;
+
+          if (!isAnimatingCamera && typeof uniforms !== 'undefined') {
+            uniforms.uScale.value = targetScale;
+            uniforms.uPitch.value = targetPitch;
+          }
+        }
+      }
+      return result;
+    };
+  }
+
+  // 3. Căn lại các nút chấm tròn trên Bản đồ nhỏ (Minimap) vào đúng giữa mái các tòa nhà
+  function alignMinimapPinsToBuildings() {
+    const correctedPins = {
+      overview: { x: 184, y: 112 },
+      campus:   { x: 176, y: 106 },
+      n01:      { x: 162, y: 108 },
+      n02:      { x: 184, y: 104 },
+      n05:      { x: 198, y: 92  },
+      n04:      { x: 202, y: 112 },
+      n03:      { x: 216, y: 102 },
+      square:   { x: 180, y: 122 },
+      sports:   { x: 136, y: 116 }
+    };
+
+    Object.keys(correctedPins).forEach(key => {
+      const pos = correctedPins[key];
+      if (typeof SCENES === 'object' && SCENES[key]) {
+        SCENES[key].pinPos = pos;
+      }
+      const pinEl = document.getElementById('pin-' + key);
+      if (pinEl) {
+        pinEl.setAttribute('cx', pos.x);
+        pinEl.setAttribute('cy', pos.y);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', alignMinimapPinsToBuildings);
+  } else {
+    alignMinimapPinsToBuildings();
+  }
+})();
