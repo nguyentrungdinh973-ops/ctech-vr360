@@ -3763,8 +3763,8 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     const cy = parseFloat(pinN02?.getAttribute('cy')) || (typeof SCENES === 'object' && SCENES.n02?.pinPos?.y) || 0;
 
     if (cx > 30 && cy > 20) {
-      const baseW = Math.round(cx / 0.371);
-      const baseH = Math.round(cy / 0.465);
+      const baseW = Math.round(cx / 0.315);
+      const baseH = Math.round(cy / 0.435);
       svgEl.setAttribute('viewBox', `0 0 ${baseW} ${baseH}`);
       svgEl.setAttribute('preserveAspectRatio', 'none');
     }
