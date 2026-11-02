@@ -3720,3 +3720,68 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   document.addEventListener('click', () => setTimeout(fixCTECHMinimapSVG, 50), true);
   setInterval(fixCTECHMinimapSVG, 400);
 })();
+/* === BỘ KHÓA TỌA ĐỘ BẢN ĐỒ #minimap-overlay-svg TRÊN ĐIỆN THOẠI (CHUẨN 100%) === */
+(function () {
+  // 1. Chèn CSS khóa tỷ lệ khung bản đồ 680:410 (Xóa sạch vệt xanh thừa ở đáy trên điện thoại)
+  if (!document.getElementById('ctech-minimap-exact-css')) {
+    const style = document.createElement('style');
+    style.id = 'ctech-minimap-exact-css';
+    style.textContent = `
+      @media screen and (max-width: 932px) {
+        #tlu-aerial-minimap {
+          aspect-ratio: 680 / 410 !important;
+          height: auto !important;
+          min-height: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+        }
+        #tlu-aerial-minimap #minimap-bg-img,
+        #tlu-aerial-minimap #minimap-overlay-svg {
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: none !important;
+          max-height: none !important;
+          object-fit: fill !important;
+          display: block !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // 2. Gắn hệ tọa độ viewBox cho #minimap-overlay-svg khớp đúng tâm mái đỏ Tòa N02 (37.1% ngang, 46.5% dọc)
+  function lockMinimapSVGViewBox() {
+    const mapEl = document.getElementById('tlu-aerial-minimap');
+    const svgEl = document.getElementById('minimap-overlay-svg');
+    if (!mapEl || !svgEl) return;
+
+    const pinN02 = document.getElementById('pin-n02');
+    const cx = parseFloat(pinN02?.getAttribute('cx')) || (typeof SCENES === 'object' && SCENES.n02?.pinPos?.x) || 0;
+    const cy = parseFloat(pinN02?.getAttribute('cy')) || (typeof SCENES === 'object' && SCENES.n02?.pinPos?.y) || 0;
+
+    if (cx > 30 && cy > 20) {
+      const baseW = Math.round(cx / 0.371);
+      const baseH = Math.round(cy / 0.465);
+      svgEl.setAttribute('viewBox', `0 0 ${baseW} ${baseH}`);
+      svgEl.setAttribute('preserveAspectRatio', 'none');
+    }
+
+    // Khóa chiều cao thực tế khi bản đồ đang mở trên màn hình nhỏ
+    if (window.innerWidth <= 932) {
+      const w = mapEl.getBoundingClientRect().width;
+      if (w > 80) {
+        const exactH = Math.round(w * (410 / 680));
+        mapEl.style.setProperty('height', exactH + 'px', 'important');
+      }
+    }
+  }
+
+  lockMinimapSVGViewBox();
+  window.addEventListener('DOMContentLoaded', lockMinimapSVGViewBox);
+  window.addEventListener('load', lockMinimapSVGViewBox);
+  window.addEventListener('resize', lockMinimapSVGViewBox);
+  document.addEventListener('click', () => setTimeout(lockMinimapSVGViewBox, 30), true);
+})();
