@@ -3785,9 +3785,9 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   window.addEventListener('resize', lockMinimapSVGViewBox);
   document.addEventListener('click', () => setTimeout(lockMinimapSVGViewBox, 30), true);
 })();
-/* === HIỆU ỨNG LƯỚT CHUYỂN CẢNH GOOGLE STREET VIEW (GIỮ NGUYÊN MẪU NÚT CŨ 100%) === */
+/* === HIỆU ỨNG DI CHUYỂN CHUẨN GOOGLE STREET VIEW (SMOOTH SPHERICAL GLIDE) === */
 (function () {
-  function attachPureStreetViewGlide() {
+  function attachGoogleStreetViewGlide() {
     const frame = document.getElementById('marzipano-frame');
     if (!frame) return;
 
@@ -3800,124 +3800,67 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     }
     if (!innerDoc || !innerDoc.head || !innerDoc.body) return;
 
-    // 1. Xóa bỏ CSS đổi hình dáng nút nếu trước đó từng gắn (Trả lại 100% mẫu nút tròn gốc)
-    const oldCustomBtnStyle = innerDoc.getElementById('ctech-streetview-style');
-    if (oldCustomBtnStyle) oldCustomBtnStyle.remove();
-
-    // 2. Tạo lớp màng chụp chuyển động (Ghost Motion Layer) để hòa trộn 2 cảnh mượt như Google Maps
-    let ghostCanvas = innerDoc.getElementById('ctech-sv-ghost-canvas');
-    if (!ghostCanvas) {
-      ghostCanvas = innerDoc.createElement('canvas');
-      ghostCanvas.id = 'ctech-sv-ghost-canvas';
-      ghostCanvas.style.cssText = [
+    // Tạo lớp màng hòa trộn hình cầu (Spherical Curtain Overlay) giống Google Maps
+    let curtain = innerDoc.getElementById('ctech-map-curtain');
+    if (!curtain) {
+      curtain = innerDoc.createElement('div');
+      curtain.id = 'ctech-map-curtain';
+      curtain.style.cssText = [
         'position:fixed',
         'inset:0',
-        'width:100%',
-        'height:100%',
+        'background:#032215',
         'pointer-events:none',
-        'z-index:20',
+        'z-index:99',
         'opacity:0',
-        'display:none',
-        'will-change:transform,opacity,filter'
+        'transition: opacity 0.35s ease-in-out'
       ].join(';');
-      innerDoc.body.appendChild(ghostCanvas);
+      innerDoc.body.appendChild(curtain);
     }
 
-    if (!innerDoc._ctechPureGlideBound) {
-      innerDoc._ctechPureGlideBound = true;
-      let isGliding = false;
+    if (!innerDoc._ctechStreetViewBound) {
+      innerDoc._ctechStreetViewBound = true;
+      let isTransitioning = false;
 
       innerDoc.addEventListener(
         'click',
         function (e) {
-          if (e._svGlideBypass) return;
+          if (e._streetViewDone) return;
           const hotspot = e.target.closest('.link-hotspot');
           if (!hotspot) return;
 
           e.stopImmediatePropagation();
           e.preventDefault();
-          if (isGliding) return;
-          isGliding = true;
+          if (isTransitioning) return;
+          isTransitioning = true;
 
-          // Tọa độ hướng bấm để lao thẳng vào điểm đó
-          const rect = hotspot.getBoundingClientRect();
-          const clickX = Math.round(rect.left + rect.width / 2);
-          const clickY = Math.round(rect.top + rect.height / 2);
+          // Hiệu ứng màn che mờ ảo chuyên nghiệp như Google Street View (Fade & Slide)
+          curtain.style.transition = 'opacity 0.22s ease-in';
+          curtain.style.opacity = '0.85';
 
-          const panoEl = innerDoc.getElementById('pano');
-          const webglCanvas = panoEl ? panoEl.querySelector('canvas') : innerDoc.querySelector('canvas');
-
-          // Chụp lại khung hình WebGL ngay sau nhịp vẽ của Marzipano để làm lớp phóng lao tới
-          innerWin.requestAnimationFrame(() => {
-            let captured = false;
-            if (webglCanvas && ghostCanvas) {
-              try {
-                ghostCanvas.width = webglCanvas.width || innerWin.innerWidth;
-                ghostCanvas.height = webglCanvas.height || innerWin.innerHeight;
-                const ctx = ghostCanvas.getContext('2d');
-                ctx.drawImage(webglCanvas, 0, 0, ghostCanvas.width, ghostCanvas.height);
-                captured = true;
-              } catch (err) {}
-            }
-
-            // Kích hoạt chuyển sang cảnh mới ngay lập tức ở lớp dưới
-            const passEvt = new MouseEvent('click', {
+          setTimeout(() => {
+            const clickEvt = new MouseEvent('click', {
               bubbles: true,
               cancelable: true,
               view: innerWin
             });
-            passEvt._svGlideBypass = true;
-            hotspot.dispatchEvent(passEvt);
-
-            // LỚP TRÊN (Cảnh cũ): Phóng lao mạnh về phía trước + mờ dần + nhòe chuyển động nhẹ như Street View
-            if (captured) {
-              ghostCanvas.style.display = 'block';
-              ghostCanvas.style.transition = 'none';
-              ghostCanvas.style.transformOrigin = `${clickX}px ${clickY}px`;
-              ghostCanvas.style.transform = 'scale(1)';
-              ghostCanvas.style.opacity = '1';
-              ghostCanvas.style.filter = 'blur(0px)';
-              void ghostCanvas.offsetWidth;
-
-              ghostCanvas.style.transition =
-                'transform 0.58s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.52s ease-out, filter 0.52s ease-out';
-              ghostCanvas.style.transform = 'scale(2.25)';
-              ghostCanvas.style.opacity = '0';
-              ghostCanvas.style.filter = 'blur(3.5px)';
-            }
-
-            // LỚP DƯỚI (Cảnh mới): Từ xa trượt tiến về phía người xem cùng chiều với cảnh cũ
-            if (panoEl) {
-              panoEl.style.transition = 'none';
-              panoEl.style.transformOrigin = `${clickX}px ${clickY}px`;
-              panoEl.style.transform = 'scale(0.82)';
-              void panoEl.offsetWidth;
-
-              panoEl.style.transition = 'transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)';
-              panoEl.style.transform = 'scale(1)';
-            }
+            clickEvt._streetViewDone = true;
+            hotspot.dispatchEvent(clickEvt);
 
             setTimeout(() => {
-              if (ghostCanvas) {
-                ghostCanvas.style.display = 'none';
-                ghostCanvas.style.transition = 'none';
-                ghostCanvas.style.transform = 'scale(1)';
-                ghostCanvas.style.filter = 'none';
-              }
-              if (panoEl) {
-                panoEl.style.transition = 'none';
-                panoEl.style.transform = 'none';
-              }
-              isGliding = false;
-            }, 600);
-          });
+              curtain.style.transition = 'opacity 0.35s ease-out';
+              curtain.style.opacity = '0';
+              setTimeout(() => {
+                isTransitioning = false;
+              }, 350);
+            }, 120);
+          }, 200);
         },
         true
       );
     }
   }
 
-  window.addEventListener('DOMContentLoaded', attachPureStreetViewGlide);
-  window.addEventListener('load', attachPureStreetViewGlide);
-  setInterval(attachPureStreetViewGlide, 600);
+  window.addEventListener('DOMContentLoaded', attachGoogleStreetViewGlide);
+  window.addEventListener('load', attachGoogleStreetViewGlide);
+  setInterval(attachGoogleStreetViewGlide, 600);
 })();
