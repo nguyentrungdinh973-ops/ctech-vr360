@@ -3741,140 +3741,41 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   window.addEventListener('load', attachPureStreetViewGlide);
   setInterval(attachPureStreetViewGlide, 600);
 })();
-/* === ĐỒNG BỘ CHUẨN 100% VỊ TRÍ CHẤM & QUẠT RADAR TRÊN CẢ MÁY TÍNH VÀ ĐIỆN THOẠI === */
+/* === BỘ CĂN CHỈNH TỌA ĐỘ BẢN ĐỒ ĐIỆN THOẠI (<= 768PX) - GIỮ NGUYÊN WEB PC 100% === */
 (function () {
-  // 1. Tọa độ chuẩn chính giữa tâm mái các tòa nhà trên hệ khung 340x205 (Dùng chung cho cả PC & Điện thoại)
-  const EXACT_PIN_COORDS = {
-    overview: { x: 168, y: 122 }, // Tâm khu vực tổng quan giữa trường
-    campus:   { x: 162, y: 118 }, // Trục khuôn viên
-    n01:      { x: 122, y: 102 }, // Chính giữa mái Tòa N01 (bên trái)
-    n02:      { x: 154, y: 100 }, // Chính giữa mái đỏ Cờ Đỏ Sao Vàng Tòa N02
-    n05:      { x: 190, y: 94  }, // Chính giữa mái Tòa N05 (phía sau)
-    n04:      { x: 195, y: 122 }, // Chính giữa mái Tòa N04 (phía trước N05)
-    n03:      { x: 232, y: 106 }, // Chính giữa mái Tòa N03 (khối chữ U bên phải)
-    square:   { x: 148, y: 145 }, // Chính giữa vòng tròn Quảng trường Hoa Sen
-    sports:   { x: 82,  y: 165 }  // Chính giữa mặt cỏ Sân bóng đá
-  };
-
-  let marzRadarAngle = 0;
-
-  function syncMinimapAndRadarAllDevices() {
-    const mapEl = document.getElementById('tlu-aerial-minimap');
-    const imgEl = document.getElementById('minimap-bg-img');
+  function applyMobileMinimapCalibration() {
     const svgEl = document.getElementById('minimap-overlay-svg');
-    if (!mapEl || !imgEl || !svgEl) return;
+    const pinN03 = document.getElementById('pin-n03');
+    if (!svgEl) return;
 
-    // 2. Khóa chung 1 hệ viewBox="0 0 340 205" và tỷ lệ khung 340:205 trên MỌI thiết bị (PC & Mobile khớp nhau 100%)
-    svgEl.setAttribute('viewBox', '0 0 340 205');
-    svgEl.setAttribute('preserveAspectRatio', 'none');
+    // Đồng bộ cy của pin-n03 trong index.html (112) với data.js (122)
+    if (pinN03 && typeof SCENES === 'object' && SCENES.n03 && SCENES.n03.pinPos) {
+      SCENES.n03.pinPos.y = parseFloat(pinN03.getAttribute('cy')) || 112;
+    }
 
-    imgEl.style.setProperty('width', '100%', 'important');
-    imgEl.style.setProperty('height', '100%', 'important');
-    imgEl.style.setProperty('object-fit', 'fill', 'important');
-
-    svgEl.style.setProperty('width', '100%', 'important');
-    svgEl.style.setProperty('height', '100%', 'important');
-
+    // Chỉ áp dụng hệ tọa độ đã lùi nhẹ sang trái (430x260) trên điện thoại (<= 768px)
     if (window.innerWidth <= 768) {
-      const w = mapEl.getBoundingClientRect().width;
-      if (w > 60) {
-        const exactH = Math.round(w * (205 / 340));
-        mapEl.style.setProperty('height', exactH + 'px', 'important');
-      }
+      svgEl.setAttribute('viewBox', '0 0 430 260');
+      svgEl.setAttribute('preserveAspectRatio', 'none');
     } else {
-      mapEl.style.removeProperty('height');
-    }
-
-    // 3. Cập nhật tọa độ các chấm tròn SVG và dữ liệu SCENES vào đúng chính giữa các tòa nhà
-    Object.keys(EXACT_PIN_COORDS).forEach((key) => {
-      const pt = EXACT_PIN_COORDS[key];
-      const pinEl = document.getElementById('pin-' + key);
-      if (pinEl) {
-        pinEl.setAttribute('cx', pt.x);
-        pinEl.setAttribute('cy', pt.y);
-      }
-      if (typeof SCENES === 'object' && SCENES[key]) {
-        SCENES[key].pinPos = { x: pt.x, y: pt.y };
-      }
-    });
-
-    // 4. Hút đỉnh nhọn (0,0) của quạt Radar vào đúng tâm chấm màu cam đang chọn
-    const activePin = svgEl.querySelector('.map-blue-pin.active-pin');
-    const radarGroup = document.getElementById('minimap-radar-group');
-    if (activePin && radarGroup) {
-      const cx = activePin.getAttribute('cx');
-      const cy = activePin.getAttribute('cy');
-      radarGroup.style.transform = '';
-      radarGroup.setAttribute('transform', `translate(${cx}, ${cy})`);
+      // Trên máy tính (> 768px): Giữ nguyên 100% viewBox="0 0 340 205" gốc của index.html
+      svgEl.setAttribute('viewBox', '0 0 340 205');
+      svgEl.removeAttribute('preserveAspectRatio');
     }
   }
 
-  // 5. Sửa lỗi xoay quạt Radar (Dùng SVG transform rotate chuẩn tâm (0,0) cho cả Flycam & 62 cảnh mặt đất)
-  function updateRadarConeRotation() {
-    const cone = document.getElementById('minimap-radar-cone');
-    if (!cone) return;
+  applyMobileMinimapCalibration();
+  window.addEventListener('DOMContentLoaded', applyMobileMinimapCalibration);
+  window.addEventListener('load', applyMobileMinimapCalibration);
+  window.addEventListener('resize', applyMobileMinimapCalibration);
+  window.addEventListener('orientationchange', () => setTimeout(applyMobileMinimapCalibration, 150));
 
-    // Xóa bỏ style.transform CSS gây lệch tâm xoay trên máy tính
-    cone.style.transform = '';
-
-    let deg = marzRadarAngle;
-    if (!currentMarzipanoId && typeof uniforms !== 'undefined' && uniforms.uYaw) {
-      deg = (uniforms.uYaw.value * 180) / Math.PI + 180;
-      marzRadarAngle = deg;
-    }
-    cone.setAttribute('transform', `rotate(${deg.toFixed(1)})`);
+  const origToggleMinimap = window.toggleMinimap;
+  if (typeof origToggleMinimap === 'function') {
+    window.toggleMinimap = function (show) {
+      const res = origToggleMinimap.apply(this, arguments);
+      applyMobileMinimapCalibration();
+      return res;
+    };
   }
-
-  // 6. Bắt chuyển động vuốt/kéo chuột trong khung 62 cảnh Marzipano để quay quạt Radar mượt mà
-  function bindMarzipanoRadarDrag() {
-    const frame = document.getElementById('marzipano-frame');
-    if (!frame) return;
-    let innerDoc;
-    try {
-      innerDoc = frame.contentDocument || frame.contentWindow?.document;
-    } catch (e) { return; }
-    if (!innerDoc || innerDoc._ctechRadarDragBound) return;
-    innerDoc._ctechRadarDragBound = true;
-
-    let dragging = false;
-    let lastX = 0;
-
-    innerDoc.addEventListener('mousedown', (e) => {
-      dragging = true;
-      lastX = e.clientX;
-    }, true);
-    innerDoc.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
-      const dx = e.clientX - lastX;
-      lastX = e.clientX;
-      marzRadarAngle = (marzRadarAngle - dx * 0.25) % 360;
-      updateRadarConeRotation();
-    }, true);
-    innerDoc.addEventListener('mouseup', () => { dragging = false; }, true);
-
-    innerDoc.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        dragging = true;
-        lastX = e.touches[0].clientX;
-      }
-    }, { passive: true, capture: true });
-    innerDoc.addEventListener('touchmove', (e) => {
-      if (!dragging || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - lastX;
-      lastX = e.touches[0].clientX;
-      marzRadarAngle = (marzRadarAngle - dx * 0.35) % 360;
-      updateRadarConeRotation();
-    }, { passive: true, capture: true });
-    innerDoc.addEventListener('touchend', () => { dragging = false; }, { passive: true, capture: true });
-  }
-
-  syncMinimapAndRadarAllDevices();
-  window.addEventListener('DOMContentLoaded', syncMinimapAndRadarAllDevices);
-  window.addEventListener('load', syncMinimapAndRadarAllDevices);
-  window.addEventListener('resize', syncMinimapAndRadarAllDevices);
-  setInterval(() => {
-    syncMinimapAndRadarAllDevices();
-    updateRadarConeRotation();
-    bindMarzipanoRadarDrag();
-  }, 60);
 })();
