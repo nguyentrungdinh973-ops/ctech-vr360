@@ -2957,93 +2957,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   }
 })();
 // =========================================================================
-// TỰ ĐỘNG ẨN & XÓA BẢNG QUẢNG CÁO "POWERED BY NETLIFY" TRÊN MỌI THIẾT BỊ
-// =========================================================================
-(function removeNetlifyPromoBadge() {
-  // 1. Chèn CSS khóa hiển thị mọi thành phần quảng cáo của Netlify
-  const hideNetlifyStyle = document.createElement('style');
-  hideNetlifyStyle.textContent = `
-    [id*="netlify" i],
-    [class*="netlify" i],
-    [data-netlify-badge],
-    [data-netlify],
-    iframe[src*="netlify.com" i],
-    iframe[src*="netlify.app/badge" i],
-    a[href*="netlify.com" i] {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-      pointer-events: none !important;
-      width: 0 !important;
-      height: 0 !important;
-      overflow: hidden !important;
-    }
-  `;
-  document.head.appendChild(hideNetlifyStyle);
-
-  // Danh sách các ID chính chủ của web CTECH (Tuyệt đối bảo vệ)
-  const CTECH_SAFE_IDS = new Set([
-    'ctech-splash', 'sidebar', 'toggle-sidebar-btn', 'open-map-pill',
-    'tlu-aerial-minimap', 'webgl-stage', 'marzipano-frame', 'hotspots-3d-layer',
-    'bottom-center-walk', 'scene-blue-badge', 'info-card', 'ctech-chatbot',
-    'ctech-guide-overlay', 'ctech-vr-toggle-btn', 'ctech-vr-exit-btn',
-    'vr-lens-overlay', 'vr-right-eye-canvas', 'marzipano-vr-right-frame'
-  ]);
-
-  // 2. Hàm quét và xóa hộp thoại "Build your own site with Netlify" & "Powered by Netlify"
-  function sweepNetlifyElements() {
-    // Quét các thẻ chèn trực tiếp hoặc có chứa văn bản quảng cáo của Netlify
-    document.querySelectorAll('body > div, body > aside, body > section, body > iframe, body > a, body > *').forEach(el => {
-      if (!el || el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') return;
-      if (el.id && CTECH_SAFE_IDS.has(el.id)) return;
-      if (el.classList && (el.classList.contains('bottom-toolbar') || el.classList.contains('floating-controls'))) return;
-
-      const idAndClass = ((el.id || '') + ' ' + (el.className || '')).toLowerCase();
-      const txt = (el.innerText || el.textContent || '').toLowerCase();
-      const shadowTxt = el.shadowRoot ? (el.shadowRoot.innerHTML || '').toLowerCase() : '';
-
-      if (
-        idAndClass.includes('netlify') ||
-        txt.includes('powered by netlify') ||
-        txt.includes('build your own site with netlify') ||
-        txt.includes('drop a site you already have') ||
-        shadowTxt.includes('powered by netlify') ||
-        shadowTxt.includes('build your own site with netlify')
-      ) {
-        el.style.setProperty('display', 'none', 'important');
-        el.style.setProperty('visibility', 'hidden', 'important');
-        el.style.setProperty('pointer-events', 'none', 'important');
-        el.remove();
-      }
-    });
-  }
-
-  // 3. Chặn cả trường hợp Netlify dùng Shadow DOM ẩn
-  const origAttachShadow = Element.prototype.attachShadow;
-  if (origAttachShadow) {
-    Element.prototype.attachShadow = function(init) {
-      const shadow = origAttachShadow.call(this, init);
-      setTimeout(() => {
-        const html = (shadow.innerHTML || '').toLowerCase();
-        if (html.includes('netlify') || html.includes('drop a site')) {
-          this.style.setProperty('display', 'none', 'important');
-          this.remove();
-        }
-      }, 30);
-      return shadow;
-    };
-  }
-
-  // Chạy quét liên tục ngay khi trang tải và theo dõi mọi thay đổi DOM
-  sweepNetlifyElements();
-  window.addEventListener('DOMContentLoaded', sweepNetlifyElements);
-  window.addEventListener('load', sweepNetlifyElements);
-  setInterval(sweepNetlifyElements, 400);
-
-  const observer = new MutationObserver(sweepNetlifyElements);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-})();
-// =========================================================================
 // SỬA LỖI ZOOM 2 NGÓN TRÊN ĐIỆN THOẠI:
 // 1. Khóa phóng to giao diện HTML (Giữ nguyên thanh công cụ đáy & nút Bản đồ)
 // 2. Thu gọn nhãn tòa nhà N01-N05 trên điện thoại để không bị to & đè lên nhau
@@ -3193,9 +3106,9 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
-/* === BỘ SỬA LỖI TOÀN DIỆN: GIỌNG ĐỌC 4 NGÔN NGỮ & MICRO CHATBOT TRÊN ĐIỆN THOẠI === */
+/* === BỘ NÂNG CẤP GIỌNG ĐỌC THUYẾT MINH TRUYỀN CẢM 4 NGÔN NGỮ & MICRO 1 CHẠM === */
 (function () {
-  // 1. Cho phép tải luồng âm thanh Google TTS trên di động không bị chặn
+  // 1. Cho phép tải luồng âm thanh mượt trên di động
   if (!document.querySelector('meta[name="referrer"]')) {
     const meta = document.createElement('meta');
     meta.name = 'referrer';
@@ -3203,7 +3116,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     document.head.appendChild(meta);
   }
 
-  // Thông báo trạng thái Micro trên màn hình
   function showMobileVoiceNotice(msg) {
     let toast = document.getElementById('ctech-voice-toast');
     if (!toast) {
@@ -3222,23 +3134,76 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     }, 3000);
   }
 
-  // 2. HÀM LÀM SẠCH VĂN BẢN TRƯỚC KHI ĐỌC (Chống đọc chữ "chấm" trong 22.000m², dấu &, dấu gạch ngang)
+  // 2. KỊCH BẢN LỜI BÌNH TIẾNG VIỆT TỰ NHIÊN CHUẨN MC THUYẾT MINH (Ngắt nhịp thở mềm mại, không đọc ký hiệu thô)
+  const NATURAL_VI_VOICE_SCRIPTS = {
+    overview:
+      'Chào mừng bạn đến với Trường Cao đẳng Kỹ thuật Công nghệ Bách Khoa, tên viết tắt là Xi-tếch, mã trường Xê Xê Gê. ' +
+      'Trường tọa lạc tại số 60 Quốc lộ 1 A, Thường Tín, Hà Nội. ' +
+      'Với tổng diện tích 22 nghìn mét vuông, khuôn viên trường bao gồm 5 tòa nhà hiện đại từ En-nờ không một đến En-nờ không năm, Quảng trường Hoa Sen và khu thể chất sân bóng.',
+    campus:
+      'Khuôn viên trường rộng 22 nghìn mét vuông được quy hoạch xanh mát với lối đi vòm hoa và hàng cây cảnh quan. ' +
+      'Trục đường nội bộ kết nối thuận tiện cả 5 tòa nhà từ En-nờ không một đến En-nờ không năm cùng khu vực Quảng trường trung tâm.',
+    n01:
+      'Đây là tòa nhà En-nờ không một, nằm ngay phía đầu cổng trường đi vào. ' +
+      'Tòa nhà là nơi bố trí Hội trường lớn, Phòng Tuyển sinh, Phòng Công tác Học sinh Sinh viên, ' +
+      'không gian Văn hóa Nhật Bản, cùng hệ thống phòng học và phòng thực hành Khoa Công nghệ thông tin.',
+    n02:
+      'Trước mắt bạn là tòa nhà En-nờ không hai, nổi bật ở trung tâm trường với hai mái đỏ sao vàng. ' +
+      'Tầng một là Xưởng thực hành Công nghệ Ô tô. Tầng hai là Phòng thực hành Điện và Sân cầu lông trong nhà. ' +
+      'Tầng ba là khu Ký túc xá sinh viên nội trú, và phía sau tòa nhà hướng thẳng ra Quảng trường Hoa Sen.',
+    n03:
+      'Tòa nhà En-nờ không ba là khu thực hành chuyên biệt cho khối ngành Chăm sóc sức khỏe và Thẩm mỹ. ' +
+      'Nơi đây gồm Phòng thực hành Điều dưỡng một trăm linh một, Phòng Trang điểm một trăm linh hai, ' +
+      'Phòng Điều trị da mặt một trăm linh ba, Phòng trưng bày Thiết kế đồ họa một trăm linh năm, cùng hệ thống phòng học lớn ở tầng hai.',
+    n04:
+      'Tòa nhà En-nờ không bốn là nơi đặt Trung tâm Ngoại ngữ ở tầng hai và Phòng học Tiếng Hán. ' +
+      'Tầng một gồm Phòng thực hành Kỹ thuật Chế biến món ăn một trăm linh sáu đạt chuẩn nhà hàng khách sạn, ' +
+      'Phòng thực hành Đồ họa và Phòng Y tế chăm sóc sức khỏe sinh viên.',
+    n05:
+      'Tòa nhà En-nờ không năm được bố trí theo từng tầng chức năng. ' +
+      'Tầng một là Căng tin phục vụ ăn uống cho sinh viên. ' +
+      'Tầng hai là khu Văn phòng Hiệu bộ, gồm Ban Giám hiệu, Văn phòng Khoa, Phòng Kế toán và Phòng Đào tạo. ' +
+      'Tầng bốn là Thư viện trung tâm và phòng họp.',
+    square:
+      'Đây là Quảng trường trung tâm nằm ngay phía sau tòa nhà En-nờ không hai. ' +
+      'Với biểu tượng Hoa Sen ở chính giữa sân tròn, đây là không gian sinh hoạt chung và tổ chức các sự kiện lớn của sinh viên nhà trường.',
+    sports:
+      'Khu thể chất và sân bóng đá cỏ nhân tạo nằm ở phía bên trái khuôn viên trường. ' +
+      'Đây là nơi phục vụ môn học Giáo dục thể chất và diễn ra các giải đấu thể thao sôi nổi của sinh viên.',
+    model3d:
+      'Bạn đang ở chế độ trải nghiệm Kính thực tế ảo ba đê, hỗ trợ chia đôi màn hình hai mắt và xoay góc nhìn ba trăm sáu mươi độ.'
+  };
+
+  // 3. HÀM CHUẨN HÓA PHÁT ÂM TIẾNG VIỆT TỰ NHIÊN (Sửa triệt để lỗi "Nờ không", "C C G", "P.101")
   function cleanTextForSpeech(rawText, langPrefix) {
     let t = (rawText || '').trim();
     if (!t) return '';
 
     if (langPrefix === 'vi') {
-      // Gộp dấu chấm phân cách hàng nghìn (VD: 22.000 -> 22000) để không đọc là "hai mươi hai chấm"
+      // Khôi phục các từ bị hàm speakCurrentDescription cũ làm méo tiếng
+      t = t.replace(/Nờ\s+không\s*(\d)/gi, 'En-nờ không $1');
+      t = t.replace(/\bN0(\d)\b/gi, 'En-nờ không $1');
+      t = t.replace(/\bC\s+C\s+G\b/g, 'Xê Xê Gê');
+      t = t.replace(/\bCCG\b/g, 'Xê Xê Gê');
+      t = t.replace(/Xi\s+Tếch/gi, 'Xi-tếch');
+      t = t.replace(/CTECH/gi, 'Xi-tếch');
+
+      // Đọc số phòng tự nhiên (VD: (P.101) -> Phòng 101)
+      t = t.replace(/\(\s*P\.?\s*(\d+)\s*\)/gi, ', phòng $1, ');
+      t = t.replace(/\bP\.\s*(\d+)\b/gi, 'phòng $1');
+      t = t.replace(/\(\s*Phòng\s+(\d+)\s*\)/gi, ', phòng $1, ');
+
+      // Làm sạch số diện tích và đơn vị
       t = t.replace(/(\d+)\.(\d{3})\b/g, '$1$2');
-      t = t.replace(/(\d+)\.(\d{3})\b/g, '$1$2');
-      // Đổi m² / m2 thành mét vuông
       t = t.replace(/m²|m2\b/gi, ' mét vuông ');
-      // Đổi ký hiệu & thành chữ "và"
+      t = t.replace(/1A\b/g, '1 A');
       t = t.replace(/\s*&\s*/g, ' và ');
-      // Đổi dấu gạch ngang – thành dấu phẩy nghỉ nhịp tự nhiên
+
+      // Bỏ dấu ngoặc đơn gây khựng giọng, thay bằng nhịp nghỉ dấu phẩy
+      t = t.replace(/\(([^)]+)\)/g, ', $1, ');
       t = t.replace(/\s*[–—-]\s*/g, ', ');
-      // Tách các số bị dính dấu phẩy (VD: 1,2 -> 1, 2)
-      t = t.replace(/(\d),(\d)/g, '$1, $2');
+      t = t.replace(/\s*;\s*/g, '. ');
+      t = t.replace(/,\s*,/g, ',');
     } else if (langPrefix === 'en') {
       t = t.replace(/(\d+)\.(\d{3})\b/g, '$1,$2');
       t = t.replace(/m²|m2\b/gi, ' square meters ');
@@ -3248,22 +3213,59 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     return t.replace(/\s+/g, ' ').trim();
   }
 
-  // 3. XỬ LÝ GIỌNG ĐỌC THUYẾT MINH (Giữ nguyên giọng gốc trên PC, sửa giọng 4 thứ tiếng trên Điện thoại)
+  // Ghi đè lại hàm speakCurrentDescription để dùng lời bình MC tự nhiên cho Tiếng Việt
+  window.speakCurrentDescription = function () {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    if (typeof SCENES !== 'object') return;
+    const data = SCENES[currentSceneKey];
+    if (!data) return;
+
+    let spokenText = '';
+    if (currentLang === 'vi' && NATURAL_VI_VOICE_SCRIPTS[currentSceneKey]) {
+      spokenText = NATURAL_VI_VOICE_SCRIPTS[currentSceneKey];
+    } else {
+      spokenText = data.desc[currentLang] || data.desc.vi || '';
+      spokenText = cleanTextForSpeech(spokenText, currentLang);
+    }
+
+    const utter = new SpeechSynthesisUtterance(spokenText);
+    utter.lang = (typeof UI_TEXT === 'object' && UI_TEXT[currentLang]?.voiceLang) || 'vi-VN';
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+    window.speechSynthesis.speak(utter);
+  };
+
+  // 4. BỘ PHÁT ÂM THANH THÔNG MINH (Ưu tiên giọng Neural cao cấp + Tải trước âm thanh không trễ nhịp)
   if ('speechSynthesis' in window) {
     const synth = window.speechSynthesis;
     const origSpeak = synth.speak.bind(synth);
     const origCancel = synth.cancel.bind(synth);
 
     let activeAudio = null;
-    let audioQueue = [];
-    let isPlayingCloud = false;
     let currentSessionId = 0;
+    let availableVoices = [];
 
-    // Dừng hoàn toàn luồng âm thanh cũ, tuyệt đối không để dính câu 1 và câu 2
+    function loadVoices() {
+      availableVoices = synth.getVoices() || [];
+    }
+    loadVoices();
+    if (synth.onvoiceschanged !== undefined) {
+      synth.addEventListener('voiceschanged', loadVoices);
+    }
+
+    // Tìm giọng đọc Neural/Natural cao cấp nếu thiết bị có hỗ trợ (VD: HoaiMy Neural, Linh Enhanced)
+    function findPremiumNativeVoice(langPrefix) {
+      if (!availableVoices.length) availableVoices = synth.getVoices() || [];
+      const matching = availableVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
+      if (!matching.length) return null;
+
+      const premium = matching.find(v => /Natural|Neural|Online|HoaiMy|NamMinh|Linh|Enhanced|Premium/i.test(v.name));
+      return premium || null;
+    }
+
     function stopCloudAudio() {
       currentSessionId++;
-      isPlayingCloud = false;
-      audioQueue = [];
       if (activeAudio) {
         try {
           activeAudio.onended = null;
@@ -3287,126 +3289,108 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       return 'en';
     }
 
-    // Chỉ cắt câu ở cuối câu dài, KHÔNG cắt ở dấu phẩy hay dấu chấm trong số 22.000
-    function splitTextToChunks(text, maxLen = 180) {
+    // Tách theo từng câu hoàn chỉnh để giữ đúng ngữ điệu lên xuống cuối câu
+    function splitTextToNaturalSentences(text, maxLen = 165) {
       const clean = (text || '').replace(/\s+/g, ' ').trim();
       if (!clean) return [];
       if (clean.length <= maxLen) return [clean];
 
-      // Chỉ tách tại dấu kết thúc câu (. ! ? 。) mà phía sau là khoảng trắng
-      const sentences = clean.split(/(?<=[.!?。])\s+/);
+      const rawSentences = clean.split(/(?<=[.!?。])\s+/);
       const chunks = [];
-      let current = '';
 
-      for (const s of sentences) {
-        if ((current + ' ' + s).trim().length <= maxLen) {
-          current = (current + ' ' + s).trim();
+      for (const s of rawSentences) {
+        if (s.length <= maxLen) {
+          chunks.push(s);
         } else {
-          if (current) chunks.push(current);
-          if (s.length <= maxLen) {
-            current = s;
-          } else {
-            // Nếu 1 câu quá dài trên 180 ký tự thì mới tách nhẹ ở dấu phẩy
-            const subParts = s.split(/(?<=[,，;])\s+/);
-            current = '';
-            for (const sub of subParts) {
-              if ((current + ' ' + sub).trim().length <= maxLen) {
-                current = (current + ' ' + sub).trim();
-              } else {
-                if (current) chunks.push(current);
-                current = sub;
-              }
+          const parts = s.split(/(?<=[,，;])\s+/);
+          let cur = '';
+          for (const p of parts) {
+            if ((cur + ' ' + p).trim().length <= maxLen) {
+              cur = (cur + ' ' + p).trim();
+            } else {
+              if (cur) chunks.push(cur);
+              cur = p;
             }
           }
+          if (cur) chunks.push(cur);
         }
       }
-      if (current) chunks.push(current);
       return chunks;
     }
 
-    // Hàng đợi đọc mượt mà trên Điện thoại (không bao giờ đè 2 giọng lên nhau)
-    function enqueueMobileCloudTTS(utterance, langPrefix) {
+    // Tải trước (Pre-buffer) toàn bộ các câu âm thanh cùng lúc để đọc liền mạch như người thật
+    function playPreloadedCloudTTS(utterance, langPrefix) {
+      stopCloudAudio();
+      const sessionId = currentSessionId;
       const cleanedText = cleanTextForSpeech(utterance.text, langPrefix);
-      const chunks = splitTextToChunks(cleanedText, 180);
+      const chunks = splitTextToNaturalSentences(cleanedText, 165);
       if (!chunks.length) return;
 
-      const sessionId = currentSessionId;
-      chunks.forEach((chunk, idx) => {
-        audioQueue.push({
-          text: chunk,
-          lang: langPrefix,
-          onstart: idx === 0 ? utterance.onstart : null,
-          onend: idx === chunks.length - 1 ? utterance.onend : null
-        });
+      // Tạo và nạp sẵn (preload) tất cả các câu ngay lập tức
+      const preloadedAudios = chunks.map(chunkText => {
+        const q = encodeURIComponent(chunkText);
+        const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${langPrefix}&q=${q}`;
+        const a = new Audio(url);
+        a.preload = 'auto';
+        // Giữ nguyên tốc độ 1.0 và cao độ gốc để giọng trầm ấm, không bị méo kiểu AI
+        a.playbackRate = 1.0;
+        if ('preservesPitch' in a) a.preservesPitch = true;
+        if ('webkitPreservesPitch' in a) a.webkitPreservesPitch = true;
+        try { a.load(); } catch (e) {}
+        return { audio: a, text: chunkText };
       });
 
-      if (!isPlayingCloud) {
-        processNextInQueue(sessionId);
-      }
-    }
+      let idx = 0;
 
-    function processNextInQueue(sessionId) {
-      if (sessionId !== currentSessionId || !audioQueue.length) {
-        isPlayingCloud = false;
-        return;
-      }
+      function playNext() {
+        if (sessionId !== currentSessionId || idx >= preloadedAudios.length) {
+          if (sessionId === currentSessionId && typeof utterance.onend === 'function') {
+            try { utterance.onend(new Event('end')); } catch (e) {}
+          }
+          return;
+        }
 
-      isPlayingCloud = true;
-      const item = audioQueue.shift();
-      if (typeof item.onstart === 'function') {
-        try { item.onstart(new Event('start')); } catch (e) {}
-      }
-
-      const q = encodeURIComponent(item.text);
-      const urls = [
-        `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${item.lang}&q=${q}`,
-        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${item.lang}&client=tw-ob&q=${q}`
-      ];
-
-      let urlIdx = 0;
-
-      function tryUrl() {
-        if (sessionId !== currentSessionId) return;
-
-        const audio = new Audio(urls[urlIdx]);
+        const currentItem = preloadedAudios[idx++];
+        const audio = currentItem.audio;
         activeAudio = audio;
-        audio.playbackRate = 1.12; // Tốc độ đọc tự nhiên, rõ ràng, không bị chậm
+        audio.playbackRate = 1.0;
 
-        let errorHandled = false;
-        function handleFail() {
-          if (errorHandled || sessionId !== currentSessionId) return;
-          errorHandled = true;
+        if (idx === 1 && typeof utterance.onstart === 'function') {
+          try { utterance.onstart(new Event('start')); } catch (e) {}
+        }
+
+        let handled = false;
+        function nextWithBreath() {
+          if (handled || sessionId !== currentSessionId) return;
+          handled = true;
           audio.onended = null;
           audio.onerror = null;
-          urlIdx++;
-          if (urlIdx < urls.length) {
-            tryUrl();
-          } else {
-            // Bỏ qua đoạn lỗi để đọc tiếp, tuyệt đối không gọi chồng giọng Robot của máy
-            if (typeof item.onend === 'function') {
-              try { item.onend(new Event('end')); } catch (e) {}
-            }
-            processNextInQueue(sessionId);
-          }
+          // Nghỉ lấy hơi nhẹ 90ms giữa hai câu
+          setTimeout(playNext, 90);
         }
 
-        audio.onended = () => {
+        audio.onended = nextWithBreath;
+        audio.onerror = () => {
+          // Dự phòng link thứ 2 nếu link 1 bận
           if (sessionId !== currentSessionId) return;
-          if (typeof item.onend === 'function') {
-            try { item.onend(new Event('end')); } catch (e) {}
-          }
-          processNextInQueue(sessionId);
+          const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${encodeURIComponent(currentItem.text)}`;
+          const fbAudio = new Audio(fallbackUrl);
+          activeAudio = fbAudio;
+          fbAudio.playbackRate = 1.0;
+          fbAudio.onended = nextWithBreath;
+          fbAudio.onerror = nextWithBreath;
+          fbAudio.play().catch(nextWithBreath);
         };
 
-        audio.onerror = handleFail;
-
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(handleFail);
+        const p = audio.play();
+        if (p !== undefined) {
+          p.catch(() => {
+            audio.onerror();
+          });
         }
       }
 
-      tryUrl();
+      playNext();
     }
 
     synth.cancel = function () {
@@ -3419,21 +3403,28 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 
       const langPrefix = detectTargetLang(utterance.text, utterance.lang);
       const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      const premiumVoice = findPremiumNativeVoice(langPrefix);
 
-      if (isMobile) {
-        // Trên điện thoại: dùng luồng Cloud TTS 4 ngôn ngữ đã chống chồng âm thanh
-        origCancel();
-        enqueueMobileCloudTTS(utterance, langPrefix);
-      } else {
-        // Trên máy tính (PC): Giữ nguyên 100% giọng đọc gốc của máy tính, chỉ làm sạch số "22.000m²" để không đọc chữ "chấm"
+      // Nếu thiết bị có sẵn giọng đọc Neural/Natural cao cấp (như HoaiMy / Linh Enhanced) thì ưu tiên dùng
+      if (!isMobile || premiumVoice) {
         stopCloudAudio();
         utterance.text = cleanTextForSpeech(utterance.text, langPrefix);
-        origSpeak(utterance);
+        if (premiumVoice) utterance.voice = premiumVoice;
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        origCancel();
+        setTimeout(() => {
+          origSpeak(utterance);
+        }, 50);
+      } else {
+        // Trên điện thoại không có giọng Neural nội bộ: phát luồng Preloaded Cloud TTS tốc độ 1.0 mượt mà
+        origCancel();
+        playPreloadedCloudTTS(utterance, langPrefix);
       }
     };
   }
 
-  // 4. MICRO 1 CHẠM THÔNG MINH CHO CHATBOT: BẤM 1 LẦN -> NÓI -> DỪNG 1.2 GIÂY TỰ ĐỘNG GỬI
+  // 5. MICRO 1 CHẠM THÔNG MINH CHO CHATBOT: BẤM 1 LẦN -> NÓI -> DỪNG 1.2 GIÂY TỰ ĐỘNG GỬI
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRec) {
     const origStart = SpeechRec.prototype.start;
@@ -3443,7 +3434,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 
     function getChatbotControls() {
       const input =
-        document.querySelector('input[placeholder*="Hỏi về phòng"]') ||
+        document.querySelector('input[placeholder*="Hỏi về"]') ||
         document.querySelector('#chat-input, #chatbot-input, .chat-input input, .chatbot-input input');
       let sendBtn = null;
       if (input && input.parentElement) {
