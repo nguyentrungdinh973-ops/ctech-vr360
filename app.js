@@ -3108,7 +3108,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 })();
 /* === BỘ NÂNG CẤP GIỌNG ĐỌC THUYẾT MINH TRUYỀN CẢM 4 NGÔN NGỮ & MICRO 1 CHẠM === */
 (function () {
-  // 1. Cho phép tải luồng âm thanh mượt trên di động
+  // 1. Cho phép tải luồng âm thanh mượt trên mọi trình duyệt
   if (!document.querySelector('meta[name="referrer"]')) {
     const meta = document.createElement('meta');
     meta.name = 'referrer';
@@ -3134,75 +3134,49 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     }, 3000);
   }
 
-  // 2. KỊCH BẢN LỜI BÌNH TIẾNG VIỆT TỰ NHIÊN CHUẨN MC THUYẾT MINH (Ngắt nhịp thở mềm mại, không đọc ký hiệu thô)
+  // 2. KỊCH BẢN THUYẾT MINH GỌN GÀNG (< 190 KÝ TỰ) ĐỂ ĐỌC LIỀN MỘT HƠI KHÔNG BỊ NGẮT QUÃNG
   const NATURAL_VI_VOICE_SCRIPTS = {
     overview:
-      'Chào mừng bạn đến với Trường Cao đẳng Kỹ thuật Công nghệ Bách Khoa, tên viết tắt là Xi-tếch, mã trường Xê Xê Gê. ' +
-      'Trường tọa lạc tại số 60 Quốc lộ 1 A, Thường Tín, Hà Nội. ' +
-      'Với tổng diện tích 22 nghìn mét vuông, khuôn viên trường bao gồm 5 tòa nhà hiện đại từ En-nờ không một đến En-nờ không năm, Quảng trường Hoa Sen và khu thể chất sân bóng.',
+      'Chào mừng bạn đến với Cao đẳng Kỹ thuật Công nghệ Bách Khoa tại Thường Tín, Hà Nội. Khuôn viên rộng 22 nghìn mét vuông gồm 5 tòa nhà hiện đại, Quảng trường Hoa Sen và khu thể chất.',
     campus:
-      'Khuôn viên trường rộng 22 nghìn mét vuông được quy hoạch xanh mát với lối đi vòm hoa và hàng cây cảnh quan. ' +
-      'Trục đường nội bộ kết nối thuận tiện cả 5 tòa nhà từ En-nờ không một đến En-nờ không năm cùng khu vực Quảng trường trung tâm.',
+      'Khuôn viên trường rộng 22 nghìn mét vuông được quy hoạch xanh mát với lối đi vòm hoa, hàng cây cảnh quan kết nối 5 tòa nhà chính và khu vực Quảng trường trung tâm.',
     n01:
-      'Đây là tòa nhà En-nờ không một, nằm ngay phía đầu cổng trường đi vào. ' +
-      'Tòa nhà là nơi bố trí Hội trường lớn, Phòng Tuyển sinh, Phòng Công tác Học sinh Sinh viên, ' +
-      'không gian Văn hóa Nhật Bản, cùng hệ thống phòng học và phòng thực hành Khoa Công nghệ thông tin.',
+      'Tòa nhà N không 1 nằm ngay đầu cổng trường. Đây là nơi đặt Hội trường lớn, Phòng Tuyển sinh, Công tác Sinh viên, không gian Văn hóa Nhật Bản và phòng thực hành Công nghệ thông tin.',
     n02:
-      'Trước mắt bạn là tòa nhà En-nờ không hai, nổi bật ở trung tâm trường với hai mái đỏ sao vàng. ' +
-      'Tầng một là Xưởng thực hành Công nghệ Ô tô. Tầng hai là Phòng thực hành Điện và Sân cầu lông trong nhà. ' +
-      'Tầng ba là khu Ký túc xá sinh viên nội trú, và phía sau tòa nhà hướng thẳng ra Quảng trường Hoa Sen.',
+      'Tòa nhà N không 2 nằm ở trung tâm trường với mái cờ đỏ sao vàng. Tầng 1 là Xưởng thực hành Ô tô, tầng 2 là Phòng Điện và Sân cầu lông, tầng 3 là khu Ký túc xá sinh viên.',
     n03:
-      'Tòa nhà En-nờ không ba là khu thực hành chuyên biệt cho khối ngành Chăm sóc sức khỏe và Thẩm mỹ. ' +
-      'Nơi đây gồm Phòng thực hành Điều dưỡng một trăm linh một, Phòng Trang điểm một trăm linh hai, ' +
-      'Phòng Điều trị da mặt một trăm linh ba, Phòng trưng bày Thiết kế đồ họa một trăm linh năm, cùng hệ thống phòng học lớn ở tầng hai.',
+      'Tòa nhà N không 3 là khu thực hành Chăm sóc sức khỏe và Thẩm mỹ, gồm phòng Điều dưỡng 101, phòng Trang điểm 102, phòng Spa 103, phòng Đồ họa 105 và các giảng đường lớn.',
     n04:
-      'Tòa nhà En-nờ không bốn là nơi đặt Trung tâm Ngoại ngữ ở tầng hai và Phòng học Tiếng Hán. ' +
-      'Tầng một gồm Phòng thực hành Kỹ thuật Chế biến món ăn một trăm linh sáu đạt chuẩn nhà hàng khách sạn, ' +
-      'Phòng thực hành Đồ họa và Phòng Y tế chăm sóc sức khỏe sinh viên.',
+      'Tòa nhà N không 4 gồm Trung tâm Ngoại ngữ ở tầng 2 và phòng Tiếng Hán. Tầng 1 đặt phòng thực hành Chế biến món ăn 106 chuẩn khách sạn, phòng Đồ họa và phòng Y tế.',
     n05:
-      'Tòa nhà En-nờ không năm được bố trí theo từng tầng chức năng. ' +
-      'Tầng một là Căng tin phục vụ ăn uống cho sinh viên. ' +
-      'Tầng hai là khu Văn phòng Hiệu bộ, gồm Ban Giám hiệu, Văn phòng Khoa, Phòng Kế toán và Phòng Đào tạo. ' +
-      'Tầng bốn là Thư viện trung tâm và phòng họp.',
+      'Tòa nhà N không 5 gồm Căng tin sinh viên ở tầng 1. Tầng 2 là khu Hiệu bộ, Ban Giám hiệu, phòng Kế toán và Đào tạo. Tầng 4 là Thư viện trung tâm và phòng họp.',
     square:
-      'Đây là Quảng trường trung tâm nằm ngay phía sau tòa nhà En-nờ không hai. ' +
-      'Với biểu tượng Hoa Sen ở chính giữa sân tròn, đây là không gian sinh hoạt chung và tổ chức các sự kiện lớn của sinh viên nhà trường.',
+      'Quảng trường Hoa Sen nằm ngay phía sau tòa N không 2, là không gian sinh hoạt chung và tổ chức các sự kiện văn hóa lớn của sinh viên nhà trường.',
     sports:
-      'Khu thể chất và sân bóng đá cỏ nhân tạo nằm ở phía bên trái khuôn viên trường. ' +
-      'Đây là nơi phục vụ môn học Giáo dục thể chất và diễn ra các giải đấu thể thao sôi nổi của sinh viên.',
+      'Khu thể chất và sân bóng đá cỏ nhân tạo nằm bên trái khuôn viên trường, phục vụ học tập thể chất và các giải đấu thể thao sôi nổi của sinh viên.',
     model3d:
-      'Bạn đang ở chế độ trải nghiệm Kính thực tế ảo ba đê, hỗ trợ chia đôi màn hình hai mắt và xoay góc nhìn ba trăm sáu mươi độ.'
+      'Bạn đang ở chế độ Kính thực tế ảo 3D, hỗ trợ chia đôi màn hình hai mắt và xoay góc nhìn 360 độ.'
   };
 
-  // 3. HÀM CHUẨN HÓA PHÁT ÂM TIẾNG VIỆT TỰ NHIÊN (Sửa triệt để lỗi "Nờ không", "C C G", "P.101")
+  // 3. LÀM SẠCH VĂN BẢN TỰ NHIÊN (Loại bỏ cách đọc "En-nờ", "Xê Xê Gê" gây chói tai)
   function cleanTextForSpeech(rawText, langPrefix) {
     let t = (rawText || '').trim();
     if (!t) return '';
 
     if (langPrefix === 'vi') {
-      // Khôi phục các từ bị hàm speakCurrentDescription cũ làm méo tiếng
-      t = t.replace(/Nờ\s+không\s*(\d)/gi, 'En-nờ không $1');
-      t = t.replace(/\bN0(\d)\b/gi, 'En-nờ không $1');
-      t = t.replace(/\bC\s+C\s+G\b/g, 'Xê Xê Gê');
-      t = t.replace(/\bCCG\b/g, 'Xê Xê Gê');
-      t = t.replace(/Xi\s+Tếch/gi, 'Xi-tếch');
-      t = t.replace(/CTECH/gi, 'Xi-tếch');
-
-      // Đọc số phòng tự nhiên (VD: (P.101) -> Phòng 101)
+      t = t.replace(/\([^)]*College[^)]*\)/gi, '');
+      t = t.replace(/\([^)]*Technology[^)]*\)/gi, '');
+      t = t.replace(/\([^)]*CCG[^)]*\)/gi, '');
+      t = t.replace(/En-nờ\s+không\s*(\d)/gi, 'N không $1');
+      t = t.replace(/Nờ\s+không\s*(\d)/gi, 'N không $1');
+      t = t.replace(/\bN0(\d)\b/gi, 'N không $1');
       t = t.replace(/\(\s*P\.?\s*(\d+)\s*\)/gi, ', phòng $1, ');
       t = t.replace(/\bP\.\s*(\d+)\b/gi, 'phòng $1');
-      t = t.replace(/\(\s*Phòng\s+(\d+)\s*\)/gi, ', phòng $1, ');
-
-      // Làm sạch số diện tích và đơn vị
       t = t.replace(/(\d+)\.(\d{3})\b/g, '$1$2');
       t = t.replace(/m²|m2\b/gi, ' mét vuông ');
-      t = t.replace(/1A\b/g, '1 A');
       t = t.replace(/\s*&\s*/g, ' và ');
-
-      // Bỏ dấu ngoặc đơn gây khựng giọng, thay bằng nhịp nghỉ dấu phẩy
       t = t.replace(/\(([^)]+)\)/g, ', $1, ');
       t = t.replace(/\s*[–—-]\s*/g, ', ');
-      t = t.replace(/\s*;\s*/g, '. ');
       t = t.replace(/,\s*,/g, ',');
     } else if (langPrefix === 'en') {
       t = t.replace(/(\d+)\.(\d{3})\b/g, '$1,$2');
@@ -3213,7 +3187,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     return t.replace(/\s+/g, ' ').trim();
   }
 
-  // Ghi đè lại hàm speakCurrentDescription để dùng lời bình MC tự nhiên cho Tiếng Việt
+  // Ghi đè hàm đọc thuyết minh với tốc độ nhanh nhẹn, tự nhiên
   window.speakCurrentDescription = function () {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -3231,12 +3205,12 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 
     const utter = new SpeechSynthesisUtterance(spokenText);
     utter.lang = (typeof UI_TEXT === 'object' && UI_TEXT[currentLang]?.voiceLang) || 'vi-VN';
-    utter.rate = 1.0;
+    utter.rate = 1.15;
     utter.pitch = 1.0;
     window.speechSynthesis.speak(utter);
   };
 
-  // 4. BỘ PHÁT ÂM THANH THÔNG MINH (Ưu tiên giọng Neural cao cấp + Tải trước âm thanh không trễ nhịp)
+  // 4. BỘ PHÁT ÂM THANH: CHỈ DÙNG GIỌNG NỘI BỘ KHI CÓ GIỌNG AI NEURAL (LOẠI BỎ GIỌNG ROBOT MICROSOFT AN)
   if ('speechSynthesis' in window) {
     const synth = window.speechSynthesis;
     const origSpeak = synth.speak.bind(synth);
@@ -3254,14 +3228,16 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       synth.addEventListener('voiceschanged', loadVoices);
     }
 
-    // Tìm giọng đọc Neural/Natural cao cấp nếu thiết bị có hỗ trợ (VD: HoaiMy Neural, Linh Enhanced)
+    // Chỉ chọn giọng đọc AI Neural cao cấp (HoaiMy / NamMinh / Linh Enhanced), tuyệt đối bỏ qua Microsoft An
     function findPremiumNativeVoice(langPrefix) {
       if (!availableVoices.length) availableVoices = synth.getVoices() || [];
       const matching = availableVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
       if (!matching.length) return null;
 
-      const premium = matching.find(v => /Natural|Neural|Online|HoaiMy|NamMinh|Linh|Enhanced|Premium/i.test(v.name));
-      return premium || null;
+      return matching.find(v =>
+        /Natural|Neural|Online|HoaiMy|NamMinh|Linh\s*\(Enhanced\)|Premium/i.test(v.name) &&
+        !/Microsoft An\b/i.test(v.name)
+      ) || null;
     }
 
     function stopCloudAudio() {
@@ -3289,51 +3265,43 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       return 'en';
     }
 
-    // Tách theo từng câu hoàn chỉnh để giữ đúng ngữ điệu lên xuống cuối câu
-    function splitTextToNaturalSentences(text, maxLen = 165) {
+    function splitTextToNaturalSentences(text, maxLen = 195) {
       const clean = (text || '').replace(/\s+/g, ' ').trim();
       if (!clean) return [];
       if (clean.length <= maxLen) return [clean];
 
       const rawSentences = clean.split(/(?<=[.!?。])\s+/);
       const chunks = [];
+      let cur = '';
 
       for (const s of rawSentences) {
-        if (s.length <= maxLen) {
-          chunks.push(s);
+        if ((cur + ' ' + s).trim().length <= maxLen) {
+          cur = (cur + ' ' + s).trim();
         } else {
-          const parts = s.split(/(?<=[,，;])\s+/);
-          let cur = '';
-          for (const p of parts) {
-            if ((cur + ' ' + p).trim().length <= maxLen) {
-              cur = (cur + ' ' + p).trim();
-            } else {
-              if (cur) chunks.push(cur);
-              cur = p;
-            }
-          }
           if (cur) chunks.push(cur);
+          cur = s;
         }
       }
+      if (cur) chunks.push(cur);
       return chunks;
     }
 
-    // Tải trước (Pre-buffer) toàn bộ các câu âm thanh cùng lúc để đọc liền mạch như người thật
     function playPreloadedCloudTTS(utterance, langPrefix) {
       stopCloudAudio();
       const sessionId = currentSessionId;
       const cleanedText = cleanTextForSpeech(utterance.text, langPrefix);
-      const chunks = splitTextToNaturalSentences(cleanedText, 165);
+      const chunks = splitTextToNaturalSentences(cleanedText, 195);
       if (!chunks.length) return;
 
-      // Tạo và nạp sẵn (preload) tất cả các câu ngay lập tức
+      // Tốc độ 1.22 cho Tiếng Việt giúp giọng đọc lanh lẹ, truyền cảm, hết hẳn cảm giác rề rà
+      const targetSpeed = langPrefix === 'vi' ? 1.22 : 1.12;
+
       const preloadedAudios = chunks.map(chunkText => {
         const q = encodeURIComponent(chunkText);
         const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${langPrefix}&q=${q}`;
         const a = new Audio(url);
         a.preload = 'auto';
-        // Giữ nguyên tốc độ 1.0 và cao độ gốc để giọng trầm ấm, không bị méo kiểu AI
-        a.playbackRate = 1.0;
+        a.playbackRate = targetSpeed;
         if ('preservesPitch' in a) a.preservesPitch = true;
         if ('webkitPreservesPitch' in a) a.webkitPreservesPitch = true;
         try { a.load(); } catch (e) {}
@@ -3353,40 +3321,37 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         const currentItem = preloadedAudios[idx++];
         const audio = currentItem.audio;
         activeAudio = audio;
-        audio.playbackRate = 1.0;
+        audio.playbackRate = targetSpeed;
 
         if (idx === 1 && typeof utterance.onstart === 'function') {
           try { utterance.onstart(new Event('start')); } catch (e) {}
         }
 
         let handled = false;
-        function nextWithBreath() {
+        function nextSeamless() {
           if (handled || sessionId !== currentSessionId) return;
           handled = true;
           audio.onended = null;
           audio.onerror = null;
-          // Nghỉ lấy hơi nhẹ 90ms giữa hai câu
-          setTimeout(playNext, 90);
+          playNext();
         }
 
-        audio.onended = nextWithBreath;
+        audio.onended = nextSeamless;
         audio.onerror = () => {
-          // Dự phòng link thứ 2 nếu link 1 bận
           if (sessionId !== currentSessionId) return;
           const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${encodeURIComponent(currentItem.text)}`;
           const fbAudio = new Audio(fallbackUrl);
           activeAudio = fbAudio;
-          fbAudio.playbackRate = 1.0;
-          fbAudio.onended = nextWithBreath;
-          fbAudio.onerror = nextWithBreath;
-          fbAudio.play().catch(nextWithBreath);
+          fbAudio.playbackRate = targetSpeed;
+          if ('preservesPitch' in fbAudio) fbAudio.preservesPitch = true;
+          fbAudio.onended = nextSeamless;
+          fbAudio.onerror = nextSeamless;
+          fbAudio.play().catch(nextSeamless);
         };
 
         const p = audio.play();
         if (p !== undefined) {
-          p.catch(() => {
-            audio.onerror();
-          });
+          p.catch(() => audio.onerror());
         }
       }
 
@@ -3402,29 +3367,28 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       if (!utterance || !utterance.text) return;
 
       const langPrefix = detectTargetLang(utterance.text, utterance.lang);
-      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
       const premiumVoice = findPremiumNativeVoice(langPrefix);
 
-      // Nếu thiết bị có sẵn giọng đọc Neural/Natural cao cấp (như HoaiMy / Linh Enhanced) thì ưu tiên dùng
-      if (!isMobile || premiumVoice) {
+      // CHỈ dùng giọng nội bộ khi máy thực sự có giọng AI Neural (như HoaiMy trên Edge)
+      if (premiumVoice) {
         stopCloudAudio();
         utterance.text = cleanTextForSpeech(utterance.text, langPrefix);
-        if (premiumVoice) utterance.voice = premiumVoice;
-        utterance.rate = 1.0;
+        utterance.voice = premiumVoice;
+        utterance.rate = 1.12;
         utterance.pitch = 1.0;
         origCancel();
         setTimeout(() => {
           origSpeak(utterance);
-        }, 50);
+        }, 40);
       } else {
-        // Trên điện thoại không có giọng Neural nội bộ: phát luồng Preloaded Cloud TTS tốc độ 1.0 mượt mà
+        // Trên mọi máy tính Chrome/Cốc Cốc & Điện thoại: phát giọng Cloud TTS tốc độ 1.22 mượt và đồng nhất
         origCancel();
         playPreloadedCloudTTS(utterance, langPrefix);
       }
     };
   }
 
-  // 5. MICRO 1 CHẠM THÔNG MINH CHO CHATBOT: BẤM 1 LẦN -> NÓI -> DỪNG 1.2 GIÂY TỰ ĐỘNG GỬI
+  // 5. GIỮ NGUYÊN TÍNH NĂNG MICRO 1 CHẠM THÔNG MINH CHO CHATBOT
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRec) {
     const origStart = SpeechRec.prototype.start;
