@@ -3106,7 +3106,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
-/* === BỘ NÂNG CẤP GIỌNG ĐỌC THUYẾT MINH TRUYỀN CẢM 4 NGÔN NGỮ & MICRO 1 CHẠM === */
+/* === BỘ NÂNG CẤP GIỌNG ĐỌC THUYẾT MINH TRUYỀN CẢM 4 NGÔN NGỮ & MICRO 1 CHẠM (CHUẨN IPHONE/IOS) === */
 (function () {
   // 1. Cho phép tải luồng âm thanh mượt trên mọi trình duyệt
   if (!document.querySelector('meta[name="referrer"]')) {
@@ -3134,7 +3134,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     }, 3000);
   }
 
-  // 2. KỊCH BẢN THUYẾT MINH GỌN GÀNG (< 190 KÝ TỰ) ĐỂ ĐỌC LIỀN MỘT HƠI KHÔNG BỊ NGẮT QUÃNG
+  // 2. KỊCH BẢN THUYẾT MINH NGẮN GỌN (< 185 KÝ TỰ) ĐỂ IPHONE ĐỌC LIỀN MỘT HƠI
   const NATURAL_VI_VOICE_SCRIPTS = {
     overview:
       'Chào mừng bạn đến với Cao đẳng Kỹ thuật Công nghệ Bách Khoa tại Thường Tín, Hà Nội. Khuôn viên rộng 22 nghìn mét vuông gồm 5 tòa nhà hiện đại, Quảng trường Hoa Sen và khu thể chất.',
@@ -3158,7 +3158,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       'Bạn đang ở chế độ Kính thực tế ảo 3D, hỗ trợ chia đôi màn hình hai mắt và xoay góc nhìn 360 độ.'
   };
 
-  // 3. LÀM SẠCH VĂN BẢN TỰ NHIÊN (Loại bỏ cách đọc "En-nờ", "Xê Xê Gê" gây chói tai)
   function cleanTextForSpeech(rawText, langPrefix) {
     let t = (rawText || '').trim();
     if (!t) return '';
@@ -3187,11 +3186,156 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     return t.replace(/\s+/g, ' ').trim();
   }
 
-  // Ghi đè hàm đọc thuyết minh với tốc độ nhanh nhẹn, tự nhiên
+  // 3. TẠO 1 TRÌNH PHÁT AUDIO DUY NHẤT & MỞ KHÓA NGAY KHI CHẠM TAY TRÊN IPHONE (IOS)
+  const ttsPlayer = document.createElement('audio');
+  ttsPlayer.id = 'ctech-ios-tts-player';
+  ttsPlayer.setAttribute('playsinline', 'true');
+  ttsPlayer.setAttribute('webkit-playsinline', 'true');
+  ttsPlayer.preload = 'auto';
+  let currentTargetRate = 1.28;
+  let iosAudioUnlocked = false;
+
+  // Khóa chặt tốc độ đọc trên iPhone: Cứ mỗi khi iOS tự trả về 1.0 là ép ngay lên 1.28x
+  ['loadedmetadata', 'canplay', 'play', 'playing', 'ratechange'].forEach(evtName => {
+    ttsPlayer.addEventListener(evtName, () => {
+      if ('preservesPitch' in ttsPlayer) ttsPlayer.preservesPitch = true;
+      if ('webkitPreservesPitch' in ttsPlayer) ttsPlayer.webkitPreservesPitch = true;
+      if (Math.abs(ttsPlayer.playbackRate - currentTargetRate) > 0.02) {
+        try { ttsPlayer.playbackRate = currentTargetRate; } catch (e) {}
+      }
+    });
+  });
+
+  // Mở khóa quyền phát âm thanh trên iOS ngay khi người dùng chạm vào nút BẮT ĐẦU hoặc màn hình
+  function unlockIOSAudio() {
+    if (iosAudioUnlocked) return;
+    iosAudioUnlocked = true;
+    try {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      ttsPlayer.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      ttsPlayer.volume = 0.01;
+      const p = ttsPlayer.play();
+      if (p !== undefined) {
+        p.then(() => {
+          ttsPlayer.pause();
+          ttsPlayer.currentTime = 0;
+          ttsPlayer.volume = 1.0;
+        }).catch(() => {
+          iosAudioUnlocked = false;
+        });
+      }
+    } catch (e) {
+      iosAudioUnlocked = false;
+    }
+  }
+  window.addEventListener('touchstart', unlockIOSAudio, { passive: true, capture: true });
+  window.addEventListener('click', unlockIOSAudio, { passive: true, capture: true });
+
+  // 4. BỘ PHÁT ÂM THANH ĐỒNG NHẤT (CẤM TUYỆT ĐỐI GIỌNG SIRI "LINH" MẶC ĐỊNH CỦA IPHONE)
+  const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  let currentSessionId = 0;
+  const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
+  const origSpeak = synth ? synth.speak.bind(synth) : null;
+  const origCancel = synth ? synth.cancel.bind(synth) : null;
+
+  function stopAllTTS() {
+    currentSessionId++;
+    try {
+      ttsPlayer.onended = null;
+      ttsPlayer.onerror = null;
+      ttsPlayer.pause();
+    } catch (e) {}
+    if (origCancel) {
+      try { origCancel(); } catch (e) {}
+    }
+  }
+
+  function detectTargetLang(text, rawLang) {
+    const t = text || '';
+    if (/[\uac00-\ud7af\u1100-\u11ff]/.test(t)) return 'ko';
+    if (/[\u3040-\u30ff\u4e00-\u9faf]/.test(t)) return 'ja';
+    if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(t)) return 'vi';
+    const l = (rawLang || '').toLowerCase();
+    if (l.startsWith('ko')) return 'ko';
+    if (l.startsWith('ja')) return 'ja';
+    if (l.startsWith('vi')) return 'vi';
+    return 'en';
+  }
+
+  function splitTextToChunks(text, maxLen = 190) {
+    const clean = (text || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return [];
+    if (clean.length <= maxLen) return [clean];
+
+    const rawSentences = clean.split(/(?<=[.!?。])\s+/);
+    const chunks = [];
+    let cur = '';
+    for (const s of rawSentences) {
+      if ((cur + ' ' + s).trim().length <= maxLen) {
+        cur = (cur + ' ' + s).trim();
+      } else {
+        if (cur) chunks.push(cur);
+        cur = s;
+      }
+    }
+    if (cur) chunks.push(cur);
+    return chunks;
+  }
+
+  function playViaUnlockedPlayer(text, langPrefix) {
+    stopAllTTS();
+    const sessionId = currentSessionId;
+    const cleaned = cleanTextForSpeech(text, langPrefix);
+    const chunks = splitTextToChunks(cleaned, 190);
+    if (!chunks.length) return;
+
+    // Tốc độ 1.28x trên iPhone giúp giọng đọc lanh lẹ, dứt khoát
+    currentTargetRate = langPrefix === 'vi' ? 1.28 : 1.15;
+    let idx = 0;
+
+    function playNextChunk() {
+      if (sessionId !== currentSessionId || idx >= chunks.length) return;
+      const chunkText = chunks[idx++];
+      const q = encodeURIComponent(chunkText);
+
+      const primaryUrl = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${langPrefix}&q=${q}`;
+      const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${q}`;
+
+      ttsPlayer.volume = 1.0;
+      ttsPlayer.src = primaryUrl;
+      ttsPlayer.playbackRate = currentTargetRate;
+
+      ttsPlayer.onended = () => {
+        if (sessionId !== currentSessionId) return;
+        playNextChunk();
+      };
+
+      ttsPlayer.onerror = () => {
+        if (sessionId !== currentSessionId) return;
+        ttsPlayer.onerror = playNextChunk;
+        ttsPlayer.src = fallbackUrl;
+        ttsPlayer.playbackRate = currentTargetRate;
+        ttsPlayer.play().catch(() => {});
+      };
+
+      const p = ttsPlayer.play();
+      if (p !== undefined) {
+        p.then(() => {
+          ttsPlayer.playbackRate = currentTargetRate;
+        }).catch(() => {
+          if (ttsPlayer.onerror) ttsPlayer.onerror();
+        });
+      }
+    }
+
+    playNextChunk();
+  }
+
   window.speakCurrentDescription = function () {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    if (typeof SCENES !== 'object') return;
+    stopAllTTS();
+    if (!isSpeaking || typeof SCENES !== 'object') return;
     const data = SCENES[currentSceneKey];
     if (!data) return;
 
@@ -3203,192 +3347,42 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       spokenText = cleanTextForSpeech(spokenText, currentLang);
     }
 
-    const utter = new SpeechSynthesisUtterance(spokenText);
-    utter.lang = (typeof UI_TEXT === 'object' && UI_TEXT[currentLang]?.voiceLang) || 'vi-VN';
-    utter.rate = 1.15;
-    utter.pitch = 1.0;
-    window.speechSynthesis.speak(utter);
+    // Gọi trực tiếp qua bộ phát đã mở khóa cho iPhone & Android
+    playViaUnlockedPlayer(spokenText, currentLang || 'vi');
   };
 
-  // 4. BỘ PHÁT ÂM THANH: CHỈ DÙNG GIỌNG NỘI BỘ KHI CÓ GIỌNG AI NEURAL (LOẠI BỎ GIỌNG ROBOT MICROSOFT AN)
-  if ('speechSynthesis' in window) {
-    const synth = window.speechSynthesis;
-    const origSpeak = synth.speak.bind(synth);
-    const origCancel = synth.cancel.bind(synth);
-
-    let activeAudio = null;
-    let currentSessionId = 0;
-    let availableVoices = [];
-
-    function loadVoices() {
-      availableVoices = synth.getVoices() || [];
-    }
-    loadVoices();
-    if (synth.onvoiceschanged !== undefined) {
-      synth.addEventListener('voiceschanged', loadVoices);
-    }
-
-    // Chỉ chọn giọng đọc AI Neural cao cấp (HoaiMy / NamMinh / Linh Enhanced), tuyệt đối bỏ qua Microsoft An
-    function findPremiumNativeVoice(langPrefix) {
-      if (!availableVoices.length) availableVoices = synth.getVoices() || [];
-      const matching = availableVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
-      if (!matching.length) return null;
-
-      return matching.find(v =>
-        /Natural|Neural|Online|HoaiMy|NamMinh|Linh\s*\(Enhanced\)|Premium/i.test(v.name) &&
-        !/Microsoft An\b/i.test(v.name)
-      ) || null;
-    }
-
-    function stopCloudAudio() {
-      currentSessionId++;
-      if (activeAudio) {
-        try {
-          activeAudio.onended = null;
-          activeAudio.onerror = null;
-          activeAudio.pause();
-          activeAudio.src = '';
-        } catch (e) {}
-        activeAudio = null;
-      }
-    }
-
-    function detectTargetLang(text, rawLang) {
-      const t = text || '';
-      if (/[\uac00-\ud7af\u1100-\u11ff]/.test(t)) return 'ko';
-      if (/[\u3040-\u30ff\u4e00-\u9faf]/.test(t)) return 'ja';
-      if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(t)) return 'vi';
-      const l = (rawLang || '').toLowerCase();
-      if (l.startsWith('ko')) return 'ko';
-      if (l.startsWith('ja')) return 'ja';
-      if (l.startsWith('vi')) return 'vi';
-      return 'en';
-    }
-
-    function splitTextToNaturalSentences(text, maxLen = 195) {
-      const clean = (text || '').replace(/\s+/g, ' ').trim();
-      if (!clean) return [];
-      if (clean.length <= maxLen) return [clean];
-
-      const rawSentences = clean.split(/(?<=[.!?。])\s+/);
-      const chunks = [];
-      let cur = '';
-
-      for (const s of rawSentences) {
-        if ((cur + ' ' + s).trim().length <= maxLen) {
-          cur = (cur + ' ' + s).trim();
-        } else {
-          if (cur) chunks.push(cur);
-          cur = s;
-        }
-      }
-      if (cur) chunks.push(cur);
-      return chunks;
-    }
-
-    function playPreloadedCloudTTS(utterance, langPrefix) {
-      stopCloudAudio();
-      const sessionId = currentSessionId;
-      const cleanedText = cleanTextForSpeech(utterance.text, langPrefix);
-      const chunks = splitTextToNaturalSentences(cleanedText, 195);
-      if (!chunks.length) return;
-
-      // Tốc độ 1.22 cho Tiếng Việt giúp giọng đọc lanh lẹ, truyền cảm, hết hẳn cảm giác rề rà
-      const targetSpeed = langPrefix === 'vi' ? 1.22 : 1.12;
-
-      const preloadedAudios = chunks.map(chunkText => {
-        const q = encodeURIComponent(chunkText);
-        const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${langPrefix}&q=${q}`;
-        const a = new Audio(url);
-        a.preload = 'auto';
-        a.playbackRate = targetSpeed;
-        if ('preservesPitch' in a) a.preservesPitch = true;
-        if ('webkitPreservesPitch' in a) a.webkitPreservesPitch = true;
-        try { a.load(); } catch (e) {}
-        return { audio: a, text: chunkText };
-      });
-
-      let idx = 0;
-
-      function playNext() {
-        if (sessionId !== currentSessionId || idx >= preloadedAudios.length) {
-          if (sessionId === currentSessionId && typeof utterance.onend === 'function') {
-            try { utterance.onend(new Event('end')); } catch (e) {}
-          }
-          return;
-        }
-
-        const currentItem = preloadedAudios[idx++];
-        const audio = currentItem.audio;
-        activeAudio = audio;
-        audio.playbackRate = targetSpeed;
-
-        if (idx === 1 && typeof utterance.onstart === 'function') {
-          try { utterance.onstart(new Event('start')); } catch (e) {}
-        }
-
-        let handled = false;
-        function nextSeamless() {
-          if (handled || sessionId !== currentSessionId) return;
-          handled = true;
-          audio.onended = null;
-          audio.onerror = null;
-          playNext();
-        }
-
-        audio.onended = nextSeamless;
-        audio.onerror = () => {
-          if (sessionId !== currentSessionId) return;
-          const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${encodeURIComponent(currentItem.text)}`;
-          const fbAudio = new Audio(fallbackUrl);
-          activeAudio = fbAudio;
-          fbAudio.playbackRate = targetSpeed;
-          if ('preservesPitch' in fbAudio) fbAudio.preservesPitch = true;
-          fbAudio.onended = nextSeamless;
-          fbAudio.onerror = nextSeamless;
-          fbAudio.play().catch(nextSeamless);
-        };
-
-        const p = audio.play();
-        if (p !== undefined) {
-          p.catch(() => audio.onerror());
-        }
-      }
-
-      playNext();
-    }
-
-    synth.cancel = function () {
-      stopCloudAudio();
-      origCancel();
-    };
-
+  if (synth) {
+    synth.cancel = stopAllTTS;
     synth.speak = function (utterance) {
       if (!utterance || !utterance.text) return;
-
       const langPrefix = detectTargetLang(utterance.text, utterance.lang);
-      const premiumVoice = findPremiumNativeVoice(langPrefix);
 
-      // CHỈ dùng giọng nội bộ khi máy thực sự có giọng AI Neural (như HoaiMy trên Edge)
-      if (premiumVoice) {
-        stopCloudAudio();
+      // Nếu là iPhone/iPad: 100% đi qua ttsPlayer, không bao giờ gọi giọng Siri của máy
+      if (isIOSDevice) {
+        playViaUnlockedPlayer(utterance.text, langPrefix);
+        return;
+      }
+
+      // Trên PC có sẵn giọng Microsoft HoaiMy Neural thì dùng, không có thì dùng ttsPlayer
+      const voices = synth.getVoices() || [];
+      const edgeNeuralVoice = voices.find(v =>
+        v.lang && v.lang.toLowerCase().startsWith(langPrefix) &&
+        /HoaiMy|NamMinh|Natural|Neural/i.test(v.name)
+      );
+
+      if (edgeNeuralVoice && origSpeak) {
+        stopAllTTS();
         utterance.text = cleanTextForSpeech(utterance.text, langPrefix);
-        utterance.voice = premiumVoice;
-        utterance.rate = 1.12;
-        utterance.pitch = 1.0;
-        origCancel();
-        setTimeout(() => {
-          origSpeak(utterance);
-        }, 40);
+        utterance.voice = edgeNeuralVoice;
+        utterance.rate = 1.15;
+        origSpeak(utterance);
       } else {
-        // Trên mọi máy tính Chrome/Cốc Cốc & Điện thoại: phát giọng Cloud TTS tốc độ 1.22 mượt và đồng nhất
-        origCancel();
-        playPreloadedCloudTTS(utterance, langPrefix);
+        playViaUnlockedPlayer(utterance.text, langPrefix);
       }
     };
   }
 
-  // 5. GIỮ NGUYÊN TÍNH NĂNG MICRO 1 CHẠM THÔNG MINH CHO CHATBOT
+  // 5. GIỮ NGUYÊN MICRO 1 CHẠM THÔNG MINH CHO CHATBOT
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRec) {
     const origStart = SpeechRec.prototype.start;
@@ -3456,7 +3450,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 
     SpeechRec.prototype.start = function () {
       activeRecInstance = this;
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopAllTTS();
 
       this.continuous = false;
       this.interimResults = true;
