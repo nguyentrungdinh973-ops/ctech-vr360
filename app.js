@@ -3690,41 +3690,127 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   window.addEventListener('load', attachPureStreetViewGlide);
   setInterval(attachPureStreetViewGlide, 600);
 })();
-/* === BỘ CĂN CHỈNH TỌA ĐỘ BẢN ĐỒ ĐIỆN THOẠI (<= 768PX) - GIỮ NGUYÊN WEB PC 100% === */
+/* === ĐỒNG BỘ TỌA ĐỘ BẢN ĐỒ MINIMAP CHUẨN GIỐNG HỆT MÁY TÍNH TRÊN MỌI ĐIỆN THOẠI === */
 (function () {
-  function applyMobileMinimapCalibration() {
+  function syncMinimapAllDevices() {
     const svgEl = document.getElementById('minimap-overlay-svg');
     const pinN03 = document.getElementById('pin-n03');
     if (!svgEl) return;
 
-    // Đồng bộ cy của pin-n03 trong index.html (112) với data.js (122)
     if (pinN03 && typeof SCENES === 'object' && SCENES.n03 && SCENES.n03.pinPos) {
       SCENES.n03.pinPos.y = parseFloat(pinN03.getAttribute('cy')) || 112;
     }
 
-    // Chỉ áp dụng hệ tọa độ đã lùi nhẹ sang trái (430x260) trên điện thoại (<= 768px)
-    if (window.innerWidth <= 768) {
-      svgEl.setAttribute('viewBox', '0 0 430 260');
-      svgEl.setAttribute('preserveAspectRatio', 'none');
-    } else {
-      // Trên máy tính (> 768px): Giữ nguyên 100% viewBox="0 0 340 205" gốc của index.html
-      svgEl.setAttribute('viewBox', '0 0 340 205');
-      svgEl.removeAttribute('preserveAspectRatio');
+    // Giữ nguyên hệ tọa độ chuẩn 340x205 của PC cho cả iPhone và Android
+    svgEl.setAttribute('viewBox', '0 0 340 205');
+    svgEl.setAttribute('preserveAspectRatio', 'none');
+  }
+
+  syncMinimapAllDevices();
+  window.addEventListener('DOMContentLoaded', syncMinimapAllDevices);
+  window.addEventListener('load', syncMinimapAllDevices);
+  window.addEventListener('resize', syncMinimapAllDevices);
+})();
+/* === BẢN VÁ MỞ KHÓA ÂM THANH IPHONE/IOS TỨC THÌ (CHẠY NGAY KHI BẤM NÚT) === */
+(function () {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // Lấy hàm phát giọng đọc gốc từ Prototype của trình duyệt (bỏ qua các lớp khóa cũ)
+  const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
+  const nativeSpeak = synth && SpeechSynthesis.prototype.speak
+    ? SpeechSynthesis.prototype.speak.bind(synth)
+    : null;
+  const nativeCancel = synth && SpeechSynthesis.prototype.cancel
+    ? SpeechSynthesis.prototype.cancel.bind(synth)
+    : null;
+
+  // Tạo trình phát Audio gắn trực tiếp vào body cho iOS
+  const iosAudio = document.createElement('audio');
+  iosAudio.id = 'ctech-ios-direct-audio';
+  iosAudio.setAttribute('playsinline', 'true');
+  iosAudio.setAttribute('webkit-playsinline', 'true');
+  iosAudio.style.display = 'none';
+  document.body.appendChild(iosAudio);
+
+  const SHORT_VI_SCRIPTS = {
+    overview: 'Chào mừng bạn đến với Cao đẳng Kỹ thuật Công nghệ Bách Khoa tại Thường Tín, Hà Nội. Khuôn viên rộng 22 nghìn mét vuông gồm 5 tòa nhà hiện đại, Quảng trường Hoa Sen và khu thể chất.',
+    campus:   'Khuôn viên trường rộng 22 nghìn mét vuông được quy hoạch xanh mát với lối đi vòm hoa, hàng cây cảnh quan kết nối 5 tòa nhà chính và khu vực Quảng trường trung tâm.',
+    n01:      'Tòa nhà N không 1 nằm ngay đầu cổng trường, là nơi đặt Hội trường lớn, Phòng Tuyển sinh, Công tác Sinh viên, không gian Văn hóa Nhật Bản và phòng thực hành Công nghệ thông tin.',
+    n02:      'Tòa nhà N không 2 nằm ở trung tâm trường với mái cờ đỏ sao vàng. Tầng 1 là Xưởng thực hành Ô tô, tầng 2 là Phòng Điện và Sân cầu lông, tầng 3 là khu Ký túc xá sinh viên.',
+    n03:      'Tòa nhà N không 3 là khu thực hành Chăm sóc sức khỏe và Thẩm mỹ, gồm phòng Điều dưỡng 101, phòng Trang điểm 102, phòng Spa 103, phòng Đồ họa 105 và các giảng đường lớn.',
+    n04:      'Tòa nhà N không 4 gồm Trung tâm Ngoại ngữ ở tầng 2 và phòng Tiếng Hán. Tầng 1 đặt phòng thực hành Chế biến món ăn 106 chuẩn khách sạn, phòng Đồ họa và phòng Y tế.',
+    n05:      'Tòa nhà N không 5 gồm Căng tin sinh viên ở tầng 1. Tầng 2 là khu Hiệu bộ, Ban Giám hiệu, phòng Kế toán và Đào tạo. Tầng 4 là Thư viện trung tâm và phòng họp.',
+    square:   'Quảng trường Hoa Sen nằm ngay phía sau tòa N không 2, là không gian sinh hoạt chung và tổ chức các sự kiện văn hóa lớn của sinh viên nhà trường.',
+    sports:   'Khu thể chất và sân bóng đá cỏ nhân tạo nằm bên trái khuôn viên trường, phục vụ học tập thể chất và các giải đấu thể thao sôi nổi của sinh viên.',
+    model3d:  'Bạn đang ở chế độ Kính thực tế ảo 3D, hỗ trợ chia đôi màn hình hai mắt và xoay góc nhìn 360 độ.'
+  };
+
+  function speakFallbackIOS(text, lang) {
+    if (!synth || !nativeSpeak) return;
+    try {
+      nativeCancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const langMap = { vi: 'vi-VN', en: 'en-US', ja: 'ja-JP', ko: 'ko-KR' };
+      u.lang = langMap[lang] || 'vi-VN';
+      u.rate = lang === 'vi' ? 1.05 : 1.0;
+      const voices = synth.getVoices() || [];
+      const v = voices.find(item => item.lang && item.lang.toLowerCase().startsWith(lang));
+      if (v) u.voice = v;
+      nativeSpeak(u);
+    } catch (e) {}
+  }
+
+  function playNarrationNow() {
+    if (!isSpeaking || typeof SCENES !== 'object') return;
+    const data = SCENES[currentSceneKey];
+    if (!data) return;
+
+    const lang = currentLang || 'vi';
+    const text = (lang === 'vi' && SHORT_VI_SCRIPTS[currentSceneKey])
+      ? SHORT_VI_SCRIPTS[currentSceneKey]
+      : (data.desc?.[lang] || data.desc?.vi || '');
+    if (!text) return;
+
+    try { iosAudio.pause(); } catch (e) {}
+    if (nativeCancel) try { nativeCancel(); } catch (e) {}
+
+    const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${lang}&q=${encodeURIComponent(text.slice(0, 190))}`;
+    iosAudio.src = url;
+    iosAudio.volume = 1.0;
+
+    iosAudio.onplaying = () => {
+      try { iosAudio.playbackRate = lang === 'vi' ? 1.12 : 1.05; } catch (e) {}
+    };
+
+    iosAudio.onerror = () => speakFallbackIOS(text, lang);
+
+    const playPromise = iosAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => speakFallbackIOS(text, lang));
     }
   }
 
-  applyMobileMinimapCalibration();
-  window.addEventListener('DOMContentLoaded', applyMobileMinimapCalibration);
-  window.addEventListener('load', applyMobileMinimapCalibration);
-  window.addEventListener('resize', applyMobileMinimapCalibration);
-  window.addEventListener('orientationchange', () => setTimeout(applyMobileMinimapCalibration, 150));
+  // Ghi đè hàm đọc để khi bấm trên iPhone sẽ phát NGAY TRONG NHỊP CHẠM TAY (không bị iOS chặn do chờ 3.5 giây)
+  if (isIOS) {
+    window.speakCurrentDescription = playNarrationNow;
 
-  const origToggleMinimap = window.toggleMinimap;
-  if (typeof origToggleMinimap === 'function') {
-    window.toggleMinimap = function (show) {
-      const res = origToggleMinimap.apply(this, arguments);
-      applyMobileMinimapCalibration();
-      return res;
+    const prevStart = window.startTourFromSplash;
+    window.startTourFromSplash = function () {
+      const r = typeof prevStart === 'function' ? prevStart.apply(this, arguments) : null;
+      if (isSpeaking) playNarrationNow();
+      return r;
+    };
+
+    const prevSelect = window.selectScene;
+    window.selectScene = function () {
+      const r = typeof prevSelect === 'function' ? prevSelect.apply(this, arguments) : null;
+      if (isSpeaking && hasStartedFromSplash) {
+        if (typeof infoPopupTimer !== 'undefined' && infoPopupTimer) clearTimeout(infoPopupTimer);
+        document.getElementById('info-card')?.classList.add('visible');
+        playNarrationNow();
+      }
+      return r;
     };
   }
 })();
