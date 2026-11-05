@@ -3690,41 +3690,24 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   window.addEventListener('load', attachPureStreetViewGlide);
   setInterval(attachPureStreetViewGlide, 600);
 })();
-/* === BỘ CĂN CHỈNH TỌA ĐỘ BẢN ĐỒ ĐIỆN THOẠI (<= 768PX) - GIỮ NGUYÊN WEB PC 100% === */
+/* === ĐỒNG BỘ TỌA ĐỘ BẢN ĐỒ MINIMAP CHUẨN GIỐNG HỆT MÁY TÍNH TRÊN MỌI ĐIỆN THOẠI === */
 (function () {
-  function applyMobileMinimapCalibration() {
+  function syncMinimapAllDevices() {
     const svgEl = document.getElementById('minimap-overlay-svg');
     const pinN03 = document.getElementById('pin-n03');
     if (!svgEl) return;
 
-    // Đồng bộ cy của pin-n03 trong index.html (112) với data.js (122)
     if (pinN03 && typeof SCENES === 'object' && SCENES.n03 && SCENES.n03.pinPos) {
       SCENES.n03.pinPos.y = parseFloat(pinN03.getAttribute('cy')) || 112;
     }
 
-    // Chỉ áp dụng hệ tọa độ đã lùi nhẹ sang trái (430x260) trên điện thoại (<= 768px)
-    if (window.innerWidth <= 768) {
-      svgEl.setAttribute('viewBox', '0 0 430 260');
-      svgEl.setAttribute('preserveAspectRatio', 'none');
-    } else {
-      // Trên máy tính (> 768px): Giữ nguyên 100% viewBox="0 0 340 205" gốc của index.html
-      svgEl.setAttribute('viewBox', '0 0 340 205');
-      svgEl.removeAttribute('preserveAspectRatio');
-    }
+    // Giữ nguyên hệ tọa độ chuẩn 340x205 của PC cho cả iPhone và Android
+    svgEl.setAttribute('viewBox', '0 0 340 205');
+    svgEl.setAttribute('preserveAspectRatio', 'none');
   }
 
-  applyMobileMinimapCalibration();
-  window.addEventListener('DOMContentLoaded', applyMobileMinimapCalibration);
-  window.addEventListener('load', applyMobileMinimapCalibration);
-  window.addEventListener('resize', applyMobileMinimapCalibration);
-  window.addEventListener('orientationchange', () => setTimeout(applyMobileMinimapCalibration, 150));
-
-  const origToggleMinimap = window.toggleMinimap;
-  if (typeof origToggleMinimap === 'function') {
-    window.toggleMinimap = function (show) {
-      const res = origToggleMinimap.apply(this, arguments);
-      applyMobileMinimapCalibration();
-      return res;
-    };
-  }
+  syncMinimapAllDevices();
+  window.addEventListener('DOMContentLoaded', syncMinimapAllDevices);
+  window.addEventListener('load', syncMinimapAllDevices);
+  window.addEventListener('resize', syncMinimapAllDevices);
 })();
