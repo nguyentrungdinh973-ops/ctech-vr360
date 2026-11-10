@@ -956,7 +956,7 @@ function toggleVoiceNarration() {
 // =========================================================================
 // PHẦN 7: TRỢ LÝ ẢO CTECH (ĐẦY ĐỦ SỐ PHÒNG 101, 102, 103, 105, 106 & 10 NÚT GỢI Ý)
 // =========================================================================
-const GEMINI_API_KEY = 'AQ.Ab8RN6KGRNzWrObzEyhZ4y_ut6sqhn5mr9qp7iE4lw3RzcAueA';
+const GEMINI_API_KEY = '';
 
 const chatbotBox = document.getElementById('ctech-chatbot');
 const chatMessagesEl = document.getElementById('chatbot-messages');
@@ -3814,9 +3814,9 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
-/* === TỰ ĐỘNG PHÁT SÁNG NÚT DẪN ĐƯỜNG TỪ VỊ TRÍ BẤT KỲ KHI TÌM PHÒNG TRONG CHATBOT === */
+/* === TỰ ĐỘNG PHÁT SÁNG NÚT DẪN ĐƯỜNG TỪ VỊ TRÍ BẤT KỲ (GIỮ NGUYÊN TỌA ĐỘ NÚT 360°) === */
 (function setupCTECHSmartGlowNavigation() {
-  // 1. CẦU NỐI DỰ PHÒNG GIỮA CÁC TÒA NHÀ (Chỉ dùng khi dữ liệu gốc thiếu liên kết)
+  // 1. CẦU NỐI DỰ PHÒNG GIỮA CÁC KHU VỰC
   const FALLBACK_BRIDGES = [
     ['9-ngoi-cng-chnh', '10-bn-trong-cng'],
     ['10-bn-trong-cng', '8-trc-mt-ton-n01'],
@@ -3891,7 +3891,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     return nodeInfoMap[marzId]?.sceneKey || currentSceneKey || 'campus';
   }
 
-  // Lấy chính xác vị trí 360° hiện tại mà người dùng đang đứng
   function getCurrentRealMarzId() {
     const { frame, innerDoc } = getIframeContext();
     const isGroundActive = frame && (frame.classList.contains('active') || frame.style.opacity === '1');
@@ -3910,7 +3909,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     return currentMarzipanoId;
   }
 
-  // 3. ĐÁNH DẤU CHÍNH XÁC TỪNG NÚT .link-hotspot TRONG MARZIPANO THEO APP_DATA
+  // 3. ĐÁNH DẤU CÁC NÚT .link-hotspot TRONG MARZIPANO THEO APP_DATA
   function indexAllMarzipanoHotspots() {
     const { innerDoc, appData } = getIframeContext();
     if (!innerDoc || !appData || !Array.isArray(appData.scenes)) return;
@@ -3925,14 +3924,12 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         if (el) {
           el.setAttribute('data-source-id', sc.id);
           el.setAttribute('data-target-id', lh.target);
-          el.setAttribute('data-yaw', lh.yaw);
-          el.setAttribute('data-pitch', lh.pitch);
         }
       });
     });
   }
 
-  // 4. THUẬT TOÁN TÌM ĐƯỜNG ƯU TIÊN 100% NÚT MŨI TÊN THẬT TRONG APP_DATA (DIJKSTRA)
+  // 4. THUẬT TOÁN TÌM ĐƯỜNG ƯU TIÊN NÚT MŨI TÊN THẬT TRONG APP_DATA
   function findBestHotspotRoute(startMarzId, targetMarzId) {
     if (!targetMarzId) return [];
     const start = startMarzId || '9-ngoi-cng-chnh';
@@ -3954,15 +3951,12 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     if (appData && Array.isArray(appData.scenes)) {
       appData.scenes.forEach(sc => {
         (sc.linkHotspots || []).forEach(lh => {
-          // Cạnh có nút mũi tên thật trên màn hình: Chi phí = 1 (Ưu tiên tuyệt đối)
           addWeightedEdge(sc.id, lh.target, 1);
-          // Chiều ngược lại dự phòng: Chi phí = 15
           addWeightedEdge(lh.target, sc.id, 15);
         });
       });
     }
 
-    // Cầu nối dự phòng nếu có 2 khu vực chưa gắn hotspot nối nhau: Chi phí = 40
     FALLBACK_BRIDGES.forEach(([a, b]) => {
       addWeightedEdge(a, b, 40);
       addWeightedEdge(b, a, 40);
@@ -4003,7 +3997,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     return route;
   }
 
-  // 5. GIAO DIỆN PHÁT SÁNG NÚT TRÊN MÀN HÌNH 360° & TRÊN FLYCAM
+  // 5. GIAO DIỆN THANH DẪN ĐƯỜNG & HIỆU ỨNG PHÁT SÁNG
   const navStyle = document.createElement('style');
   navStyle.textContent = `
     .chat-nav-btn-group {
@@ -4027,7 +4021,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
     }
-    /* Hiệu ứng phát sáng nhãn tòa nhà trên cảnh Flycam */
     @keyframes ctechAerialTagPulse {
       0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.95), 0 0 22px #f97316; background: #ea580c; }
       70% { box-shadow: 0 0 0 18px rgba(250, 204, 21, 0), 0 0 32px #fde047; background: #d97706; }
@@ -4048,8 +4041,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       font-size: 10.5px;
       border-radius: 10px;
     }
-
-    /* Thanh HUD dẫn đường gọn gàng phía trên */
     #ctech-step-nav-hud {
       position: fixed;
       top: 12px;
@@ -4129,33 +4120,8 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     .step-node-pill.current { background: #f59e0b; color: #032215; font-weight: 800; border-color: #ffffff; }
     .step-node-arrow { color: #fde047; font-size: 11px; flex-shrink: 0; }
 
-    /* Nút mũi tên phát sáng dự phòng giữa màn hình nếu cảnh hiện tại thiếu nút nối trực tiếp */
-    #ctech-floating-step-beacon {
-      position: fixed;
-      bottom: 118px;
-      left: calc(50% + 100px);
-      transform: translateX(-50%);
-      z-index: 205;
-      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-      color: #ffffff;
-      border: 2.5px solid #fef08a;
-      border-radius: 999px;
-      padding: 9px 20px;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 0 25px rgba(249, 115, 22, 0.95);
-      animation: ctechAerialTagPulse 1.2s infinite;
-    }
-    body.sidebar-closed #ctech-floating-step-beacon { left: 50%; }
-    #ctech-floating-step-beacon.show-beacon { display: inline-flex; }
-
     @media (max-width: 768px) {
       #ctech-step-nav-hud { top: 48px !important; left: 50% !important; width: 94vw !important; }
-      #ctech-floating-step-beacon { left: 50% !important; bottom: 145px !important; font-size: 11.8px; padding: 7px 15px; }
     }
   `;
   document.head.appendChild(navStyle);
@@ -4177,12 +4143,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   `;
   document.body.appendChild(hudEl);
 
-  const floatingBeacon = document.createElement('button');
-  floatingBeacon.type = 'button';
-  floatingBeacon.id = 'ctech-floating-step-beacon';
-  document.body.appendChild(floatingBeacon);
-
-  // 6. HÀM BẬT PHÁT SÁNG NÚT MŨI TÊN TRONG 360° & XOAY CAMERA VỀ HƯỚNG NÚT ĐÓ
+  // 6. BẬT PHÁT SÁNG NÚT MŨI TÊN TRÊN MẶT ĐẤT (TUYỆT ĐỐI KHÔNG ĐỤNG VÀO TRANSFORM CỦA NÚT GỐC)
   let activeRoute = [];
   let activeStepIndex = 0;
   let autoWalkTimer = null;
@@ -4193,14 +4154,13 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       el.classList.remove('ctech-aerial-glow');
       el.querySelectorAll('.ctech-aerial-guide-badge').forEach(b => b.remove());
     });
-    floatingBeacon.classList.remove('show-beacon');
 
     const { innerDoc } = getIframeContext();
     if (!innerDoc) return;
     innerDoc.querySelectorAll('.ctech-next-step-hotspot').forEach(el => {
       el.classList.remove('ctech-next-step-hotspot');
     });
-    innerDoc.querySelectorAll('.ctech-next-step-badge').forEach(el => el.remove());
+    innerDoc.querySelectorAll('.ctech-next-step-badge, .ctech-glow-ring').forEach(el => el.remove());
   }
 
   function highlightCurrentStepButtons() {
@@ -4209,7 +4169,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 
     const currRealId = getCurrentRealMarzId();
 
-    // TRƯỜNG HỢP 1: Người dùng đang ở cảnh Flycam trên cao (Chưa vào mặt đất)
+    // TRƯỜNG HỢP 1: Đang ở cảnh Flycam trên cao
     if (!currRealId) {
       if (targetBuildingKey) {
         document.querySelectorAll('.tlu-hotspot-tag').forEach(tag => {
@@ -4218,84 +4178,104 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
             tag.classList.add('ctech-aerial-glow');
             const badge = document.createElement('span');
             badge.className = 'ctech-aerial-guide-badge';
-            badge.textContent = '👉 BẤM VÀO TÒA NÀY ĐỂ ĐI TỚI PHÒNG';
+            badge.textContent = '👉 BẤM VÀO ĐÂY ĐỂ ĐI TỚI PHÒNG';
             tag.appendChild(badge);
           }
         });
       }
-      floatingBeacon.classList.add('show-beacon');
-      floatingBeacon.innerHTML = `🧭 Bấm vào đây để bắt đầu đi tới: ${getNodeLabel(activeRoute[activeRoute.length - 1])} ➔`;
-      floatingBeacon.onclick = () => jumpToRouteStep(0);
       return;
     }
 
-    // TRƯỜNG HỢP 2: Người dùng đang đứng ở bất kỳ cảnh 360° nào dưới mặt đất
+    // TRƯỜNG HỢP 2: Đang đứng ở cảnh 360° mặt đất
     const nextId = activeStepIndex < activeRoute.length - 1 ? activeRoute[activeStepIndex + 1] : null;
     if (!nextId) return;
 
-    const { innerDoc, innerWin } = getIframeContext();
+    const { innerDoc } = getIframeContext();
     if (!innerDoc) return;
 
     indexAllMarzipanoHotspots();
 
-    // Chèn CSS phát sáng rực rỡ vào trong iframe Marzipano
-    if (!innerDoc.getElementById('ctech-hotspot-guide-css')) {
-      const st = innerDoc.createElement('style');
-      st.id = 'ctech-hotspot-guide-css';
-      st.textContent = `
-        @keyframes ctechHotspotGlowPulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(250, 204, 21, 1), 0 0 28px 8px #ea580c;
-            transform: scale(1.15);
-          }
-          65% {
-            box-shadow: 0 0 0 24px rgba(250, 204, 21, 0), 0 0 38px 14px #fde047;
-            transform: scale(1.28);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(250, 204, 21, 0), 0 0 28px 8px #ea580c;
-            transform: scale(1.15);
-          }
-        }
-        .link-hotspot.ctech-next-step-hotspot {
-          background: radial-gradient(circle, #f59e0b 0%, #ea580c 85%) !important;
-          border: 3.5px solid #fef08a !important;
-          animation: ctechHotspotGlowPulse 1.15s infinite !important;
-          z-index: 9999 !important;
-          overflow: visible !important;
-        }
-        .ctech-next-step-badge {
-          position: absolute;
-          bottom: 70px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-          color: #ffffff;
-          border: 2px solid #fef08a;
-          border-radius: 999px;
-          padding: 5px 13px;
-          font-size: 12px;
-          font-weight: 800;
-          white-space: nowrap;
-          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
-          pointer-events: none;
-          z-index: 10000;
-        }
-      `;
-      innerDoc.head.appendChild(st);
-    }
+    // Chèn CSS phát sáng (KHÔNG dùng transform trên .link-hotspot để không làm mất vị trí nút)
+    const oldStyle = innerDoc.getElementById('ctech-hotspot-guide-css');
+    if (oldStyle) oldStyle.remove();
 
-    // Tìm đúng nút .link-hotspot của cảnh hiện tại dẫn sang bước tiếp theo
+    const st = innerDoc.createElement('style');
+    st.id = 'ctech-hotspot-guide-css';
+    st.textContent = `
+      @keyframes ctechGlowShadowOnly {
+        0% {
+          box-shadow: 0 0 0 0 rgba(250, 204, 21, 1), 0 0 25px 8px #ea580c, inset 0 0 14px #fef08a;
+          background-color: rgba(234, 88, 12, 0.92);
+          border-color: #fef08a;
+        }
+        60% {
+          box-shadow: 0 0 0 22px rgba(250, 204, 21, 0), 0 0 40px 16px #fde047, inset 0 0 22px #ffffff;
+          background-color: rgba(245, 158, 11, 0.98);
+          border-color: #ffffff;
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(250, 204, 21, 0), 0 0 25px 8px #ea580c, inset 0 0 14px #fef08a;
+          background-color: rgba(234, 88, 12, 0.92);
+          border-color: #fef08a;
+        }
+      }
+      @keyframes ctechOuterRingPulse {
+        0% { transform: translate(-50%, -50%) scale(0.95); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1.95); opacity: 0; }
+      }
+      @keyframes ctechBadgeFloat {
+        0%, 100% { transform: translateX(-50%) translateY(0px); }
+        50% { transform: translateX(-50%) translateY(-6px); }
+      }
+      .link-hotspot.ctech-next-step-hotspot {
+        background: rgba(234, 88, 12, 0.92) !important;
+        border: 3.5px solid #fef08a !important;
+        animation: ctechGlowShadowOnly 1.15s infinite !important;
+        z-index: 9999 !important;
+        overflow: visible !important;
+      }
+      .ctech-glow-ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 3px solid #fde047;
+        box-shadow: 0 0 18px #facc15;
+        pointer-events: none;
+        animation: ctechOuterRingPulse 1.2s infinite ease-out;
+      }
+      .ctech-next-step-badge {
+        position: absolute;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+        color: #ffffff;
+        border: 2px solid #fef08a;
+        border-radius: 999px;
+        padding: 5px 14px;
+        font-size: 12.5px;
+        font-weight: 800;
+        white-space: nowrap;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75);
+        pointer-events: none;
+        z-index: 10000;
+        animation: ctechBadgeFloat 1s infinite ease-in-out;
+      }
+    `;
+    innerDoc.head.appendChild(st);
+
+    // Tìm đúng nút .link-hotspot dẫn sang bước tiếp theo
     let matchedHotspot = innerDoc.querySelector(
       `.link-hotspot[data-source-id="${currRealId}"][data-target-id="${nextId}"]`
     );
 
-    // Nếu không có cạnh trực tiếp sang nextId, kiểm tra xem có nút nào dẫn tới các bước phía trước trong lộ trình không
     if (!matchedHotspot) {
       for (let i = activeRoute.length - 1; i > activeStepIndex; i--) {
-        const candidateTarget = activeRoute[i];
         const candidateEl = innerDoc.querySelector(
-          `.link-hotspot[data-source-id="${currRealId}"][data-target-id="${candidateTarget}"]`
+          `.link-hotspot[data-source-id="${currRealId}"][data-target-id="${activeRoute[i]}"]`
         );
         if (candidateEl) {
           matchedHotspot = candidateEl;
@@ -4304,28 +4284,30 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       }
     }
 
+    // Dự phòng tìm theo tên hiển thị của tooltip trong cảnh hiện tại
+    if (!matchedHotspot) {
+      const nextName = removeAccents(getNodeLabel(nextId));
+      innerDoc.querySelectorAll('.link-hotspot').forEach(hs => {
+        if (hs.offsetParent === null) return;
+        const tip = hs.querySelector('.link-hotspot-tooltip');
+        const tipText = removeAccents(tip ? tip.textContent : '');
+        if (tipText && (nextName.includes(tipText) || tipText.includes(nextName))) {
+          matchedHotspot = hs;
+        }
+      });
+    }
+
     if (matchedHotspot) {
       matchedHotspot.classList.add('ctech-next-step-hotspot');
+
+      const ring = innerDoc.createElement('div');
+      ring.className = 'ctech-glow-ring';
+      matchedHotspot.appendChild(ring);
+
       const badge = innerDoc.createElement('div');
       badge.className = 'ctech-next-step-badge';
-      badge.textContent = '👉 ĐI LỐI NÀY: ' + getNodeLabel(nextId);
+      badge.textContent = '👉 BẤM NÚT NÀY: ' + getNodeLabel(nextId);
       matchedHotspot.appendChild(badge);
-
-      // Tự động xoay nhẹ góc nhìn 360° hướng thẳng về phía nút mũi tên phát sáng
-      const yaw = parseFloat(matchedHotspot.getAttribute('data-yaw'));
-      const pitch = parseFloat(matchedHotspot.getAttribute('data-pitch'));
-      if (!isNaN(yaw) && innerWin) {
-        innerWin.postMessage({
-          type: 'VR_GYRO_LOOK',
-          yaw: yaw,
-          pitch: isNaN(pitch) ? 0 : Math.max(-0.35, Math.min(0.35, pitch))
-        }, '*');
-      }
-    } else {
-      // Nếu cảnh hiện tại không có mũi tên nối sang bước kế, hiện nút mũi tên phát sáng hỗ trợ ngay trên màn hình
-      floatingBeacon.classList.add('show-beacon');
-      floatingBeacon.innerHTML = `👉 Đi tiếp tới: ${getNodeLabel(nextId)} ➔`;
-      floatingBeacon.onclick = () => jumpToRouteStep(activeStepIndex + 1);
     }
   }
 
@@ -4435,7 +4417,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     renderStepHUD();
   }
 
-  // Khởi tạo lộ trình phát sáng ngay từ vị trí hiện tại của người dùng (Không dịch chuyển cưỡng bức)
   function activateGlowRouteFromCurrentSpot(targetSceneKey, specificMarzId, enterFirstStepImmediately = false) {
     stopAutoWalk();
     targetBuildingKey = targetSceneKey;
@@ -4443,8 +4424,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     if (!destMarzId) return;
 
     const currentRealId = getCurrentRealMarzId();
-    // Nếu đang đứng ở bất kỳ cảnh 360° nào -> Tính đường trực tiếp từ đúng cảnh đó!
-    // Nếu đang ở trên cao (Flycam) -> Tính đường từ đầu tòa nhà hoặc cổng chính
     const startId = currentRealId || (typeof SCENES === 'object' && SCENES[targetSceneKey]?.marzipanoId) || '9-ngoi-cng-chnh';
 
     activeRoute = findBestHotspotRoute(startId, destMarzId);
@@ -4468,7 +4447,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   document.getElementById('step-hud-auto-btn').onclick = toggleAutoWalk;
   document.getElementById('step-hud-close-btn').onclick = stopStepNavigation;
 
-  // 7. THEO DÕI KHI NGƯỜI DÙNG BẤM NÚT MŨI TÊN DI CHUYỂN TRONG 360° ĐỂ TỰ BẬT SÁNG NÚT TIẾP THEO
   let lastTrackedMarzId = null;
   setInterval(() => {
     const realId = getCurrentRealMarzId();
@@ -4482,14 +4460,12 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     if (idxInRoute !== -1) {
       activeStepIndex = idxInRoute;
     } else {
-      // Nếu người dùng rẽ sang một ngã khác, tự động tính lại đường ngắn nhất từ ngã rẽ đó tới đích!
       activeRoute = findBestHotspotRoute(realId, destId);
       activeStepIndex = 0;
     }
     renderStepHUD();
   }, 300);
 
-  // 8. TỰ ĐỘNG BẬT PHÁT SÁNG NÚT DẪN ĐƯỜNG NGAY KHI CHATBOT TRẢ LỜI TÌM PHÒNG
   function enhancedAppendBotMessage(htmlText, targetSceneKey, targetLabel, specificMarzId = null, extraButtons = null) {
     const div = document.createElement('div');
     div.className = 'chat-msg bot';
@@ -4535,14 +4511,12 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         if (!btnInfo || !SCENES[btnInfo.scene]) return;
         createActionPair(btnInfo.scene, btnInfo.marzId, btnInfo.btnText);
       });
-      // Tự động bật sáng ngay đường đi tới phòng đầu tiên trong kết quả
       const first = extraButtons[0];
       if (first && first.scene) {
         activateGlowRouteFromCurrentSpot(first.scene, first.marzId, false);
       }
     } else if (targetSceneKey && SCENES[targetSceneKey]) {
       createActionPair(targetSceneKey, specificMarzId, targetLabel);
-      // Khi vừa gõ tìm phòng xong -> Tự động phát sáng nút dẫn đường từ đúng vị trí đang đứng!
       if (targetSceneKey !== 'overview') {
         activateGlowRouteFromCurrentSpot(targetSceneKey, specificMarzId, false);
       }
