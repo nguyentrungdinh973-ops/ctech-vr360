@@ -3814,3 +3814,656 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
+/* === TÍNH NĂNG CHỈ ĐƯỜNG TỪNG BƯỚC (STEP-BY-STEP NAVIGATION) TRONG CHATBOT & 360° === */
+(function setupCTECHStepByStepNavigation() {
+  // 1. BẢN ĐỒ KẾT NỐI CÁC NÚT 360° TRONG KHUÔN VIÊN CTECH (TỪ CỔNG VÀO TỪNG PHÒNG HỌC)
+  const CAMPUS_EDGES = [
+    // Trục đường chính từ Cổng trường vào các tòa
+    ['9-ngoi-cng-chnh', '10-bn-trong-cng'],
+    ['11-ngoi-cng-trng-', '9-ngoi-cng-chnh'],
+    ['10-bn-trong-cng', '8-trc-mt-ton-n01'],
+    ['10-bn-trong-cng', '24-ng-ba-gia-cc-ta'],
+    ['24-ng-ba-gia-cc-ta', '13-mt-chnh-xng--t'],
+    ['24-ng-ba-gia-cc-ta', '25-trc-ca-ta-n05-cng-tin'],
+    ['24-ng-ba-gia-cc-ta', '52-ng-t-gia-cc-ta'],
+    ['52-ng-t-gia-cc-ta', '44-bn-trong-vm-hoa-gia-hai-ta'],
+    ['44-bn-trong-vm-hoa-gia-hai-ta', '30-trc-vm-hoa-bn-tri'],
+    ['44-bn-trong-vm-hoa-gia-hai-ta', '43-trc-vm-hoa-bn-phi'],
+    ['52-ng-t-gia-cc-ta', '34-trc-ta-n03'],
+    ['52-ng-t-gia-cc-ta', '45-trc-mt-ta-n04'],
+    ['52-ng-t-gia-cc-ta', '51-ng-ba-gn-qung-trng-ctech'],
+
+    // Nhánh Tòa N01 (Hội trường, Tuyển sinh, CT HSSV, CNTT, Tiếng Nhật)
+    ['8-trc-mt-ton-n01', '2-bn-ngoi-n01'],
+    ['8-trc-mt-ton-n01', '12-mt-bn-tri-ton-n01'],
+    ['12-mt-bn-tri-ton-n01', '59-ng-ba-cng-ph-gn-n01'],
+    ['59-ng-ba-cng-ph-gn-n01', '60-cng-ph'],
+    ['2-bn-ngoi-n01', '0-snh-n01'],
+    ['0-snh-n01', '3-phng-cng-tc-tuyn-sinh'],
+    ['0-snh-n01', '1-hi-trng-n01'],
+    ['0-snh-n01', '4-phng-thc-hnh-my'],
+    ['4-phng-thc-hnh-my', '5-phng-thc-hng-v-m'],
+    ['0-snh-n01', '6-phng-ting-nht-ln'],
+    ['6-phng-ting-nht-ln', '7-phng-ting-nht-b'],
+
+    // Nhánh Tòa N02 (Xưởng Ô tô, Phòng Điện, Sân cầu lông, Ký túc xá)
+    ['13-mt-chnh-xng--t', '14-bn-trong-xng--t'],
+    ['13-mt-chnh-xng--t', '23-ng-i-quay-n02'],
+    ['13-mt-chnh-xng--t', '16-tng-hai-ta-n02'],
+    ['16-tng-hai-ta-n02', '15-tng-hai-ta-n02-trc-ca-phng-in'],
+    ['15-tng-hai-ta-n02-trc-ca-phng-in', '17-bn-trong-phng-in-n02'],
+    ['16-tng-hai-ta-n02', '18-trc-ca-i-vo-sn-cu-lng-n02'],
+    ['18-trc-ca-i-vo-sn-cu-lng-n02', '19-sn-cu-lng-n02'],
+    ['16-tng-hai-ta-n02', '20-tng-ba-ta-n02-k-tc-x'],
+    ['20-tng-ba-ta-n02-k-tc-x', '21-hanh-lang-tng-ba-ton-n02'],
+    ['21-hanh-lang-tng-ba-ton-n02', '22-bn-trong-phng-k-tc'],
+
+    // Nhánh Tòa N03 (P.101 Điều dưỡng, P.102 Trang điểm, P.103 Spa, P.105 Đồ họa)
+    ['34-trc-ta-n03', '35-chnh-gia-ta-n03'],
+    ['34-trc-ta-n03', '31-trc-bi-rc-gn-n03'],
+    ['31-trc-bi-rc-gn-n03', '32-sau-ta-n03'],
+    ['32-sau-ta-n03', '33-sau-ta-n03-s-2'],
+    ['35-chnh-gia-ta-n03', '36-phng-thc-hnh-iu-dng'],
+    ['35-chnh-gia-ta-n03', '37-phng-thc-hnh-sc-p-trang-im'],
+    ['35-chnh-gia-ta-n03', '38-phng-thc-hnh-sc-p-iu-tr-da-mt'],
+    ['35-chnh-gia-ta-n03', '39-phng-chng-by-ca-thit-k--ha'],
+    ['35-chnh-gia-ta-n03', '40-tng-hai-ta-n03'],
+    ['40-tng-hai-ta-n03', '42-phng-hc-ta-n03'],
+
+    // Nhánh Tòa N04 (P.101 Y tế, P.106 Chế biến món ăn, Ngoại ngữ, Tiếng Hán)
+    ['45-trc-mt-ta-n04', '46-chnh-gia-ta-n04'],
+    ['46-chnh-gia-ta-n04', '47-phng-y-t-n04'],
+    ['46-chnh-gia-ta-n04', '50-phng-thc-hnh-ch-bin'],
+    ['46-chnh-gia-ta-n04', '41-phng-hc-ting-hn-ta-n04'],
+    ['46-chnh-gia-ta-n04', '48-phng-thc-hnh-thit-k--ha-n04'],
+    ['46-chnh-gia-ta-n04', '49-trung-tm-ngoi-ng-tng-2-n04'],
+
+    // Nhánh Tòa N05 (Căng tin, Kế toán - Đào tạo, Thư viện)
+    ['25-trc-ca-ta-n05-cng-tin', '26-cng-tin-n05'],
+    ['25-trc-ca-ta-n05-cng-tin', '27-phng-gio-vin-k-ton-o-to'],
+    ['27-phng-gio-vin-k-ton-o-to', '28-th-vin-n05'],
+    ['28-th-vin-n05', '29-trong-phng-hp-th-vin'],
+
+    // Nhánh Quảng trường Hoa Sen & Sân bóng đá
+    ['51-ng-ba-gn-qung-trng-ctech', '54-gia-sn-ctech'],
+    ['54-gia-sn-ctech', '55-qung-trng-ctech'],
+    ['59-ng-ba-cng-ph-gn-n01', '61-ng-vo-sn-bng'],
+    ['61-ng-vo-sn-bng', '56-on-ng-vo-sn-bng'],
+    ['56-on-ng-vo-sn-bng', '53-on-ng-gn-sn-bng'],
+    ['53-on-ng-gn-sn-bng', '57-v-tr--xem--bng'],
+    ['57-v-tr--xem--bng', '58-sn-bng']
+  ];
+
+  // 2. XÂY DỰNG TỪ ĐIỂN TÊN NÚT & ĐỒ THỊ TÌM ĐƯỜNG NGẮN NHẤT (BFS)
+  const nodeInfoMap = {};
+  if (typeof SCENES === 'object') {
+    Object.keys(SCENES).forEach(sceneKey => {
+      const sc = SCENES[sceneKey];
+      if (sc.marzipanoId && !nodeInfoMap[sc.marzipanoId]) {
+        nodeInfoMap[sc.marzipanoId] = {
+          sceneKey,
+          marzId: sc.marzipanoId,
+          label: sc.title?.vi || sc.menu?.vi || sc.marzipanoId
+        };
+      }
+      if (Array.isArray(sc.subItems)) {
+        sc.subItems.forEach(sub => {
+          if (sub.marzipanoId) {
+            nodeInfoMap[sub.marzipanoId] = {
+              sceneKey,
+              marzId: sub.marzipanoId,
+              label: (typeof MARZIPANO_NAME_OVERRIDES === 'object' && MARZIPANO_NAME_OVERRIDES[sub.marzipanoId]) ||
+                     sub.label?.vi || sub.marzipanoId
+            };
+          }
+        });
+      }
+    });
+  }
+
+  function getNodeLabel(marzId) {
+    if (typeof MARZIPANO_NAME_OVERRIDES === 'object' && MARZIPANO_NAME_OVERRIDES[marzId]) {
+      return MARZIPANO_NAME_OVERRIDES[marzId];
+    }
+    return nodeInfoMap[marzId]?.label || marzId;
+  }
+
+  function getNodeSceneKey(marzId) {
+    return nodeInfoMap[marzId]?.sceneKey || 'campus';
+  }
+
+  function buildAdjacencyGraph() {
+    const adj = {};
+    function addEdge(a, b) {
+      if (!a || !b) return;
+      if (!adj[a]) adj[a] = new Set();
+      if (!adj[b]) adj[b] = new Set();
+      adj[a].add(b);
+      adj[b].add(a);
+    }
+    CAMPUS_EDGES.forEach(([u, v]) => addEdge(u, v));
+
+    // Tự động bổ sung thêm các liên kết hotspot thực tế từ Marzipano nếu đã tải
+    try {
+      const frame = document.getElementById('marzipano-frame');
+      const appData = frame?.contentWindow?.APP_DATA;
+      if (appData && Array.isArray(appData.scenes)) {
+        appData.scenes.forEach(sc => {
+          if (Array.isArray(sc.linkHotspots)) {
+            sc.linkHotspots.forEach(lh => addEdge(sc.id, lh.target));
+          }
+        });
+      }
+    } catch (e) {}
+
+    return adj;
+  }
+
+  function findShortestRoute(startMarzId, targetMarzId) {
+    if (!targetMarzId) return [];
+    const start = startMarzId || '9-ngoi-cng-chnh';
+    if (start === targetMarzId) return [start];
+
+    const adj = buildAdjacencyGraph();
+    const queue = [[start]];
+    const visited = new Set([start]);
+
+    while (queue.length > 0) {
+      const path = queue.shift();
+      const curr = path[path.length - 1];
+      const neighbors = adj[curr] ? Array.from(adj[curr]) : [];
+
+      for (const nxt of neighbors) {
+        if (nxt === targetMarzId) {
+          return [...path, nxt];
+        }
+        if (!visited.has(nxt)) {
+          visited.add(nxt);
+          queue.push([...path, nxt]);
+        }
+      }
+    }
+    // Dự phòng nếu chọn cảnh chưa nối trực tiếp
+    return [start, targetMarzId];
+  }
+
+  // 3. GIAO DIỆN THANH DẪN ĐƯỜNG TỪNG BƯỚC (NAVIGATION HUD) & NÚT CHAT
+  const navStyle = document.createElement('style');
+  navStyle.textContent = `
+    .chat-nav-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 7px;
+    }
+    .chat-jump-btn {
+      margin-top: 0 !important;
+    }
+    .chat-step-guide-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+      color: #ffffff;
+      border: 1px solid #fde047;
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    .chat-step-guide-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    /* Thanh HUD Chỉ đường từng bước trên màn hình 360 */
+    #ctech-step-nav-hud {
+      position: fixed;
+      top: 14px;
+      left: calc(50% + 100px);
+      transform: translateX(-50%);
+      z-index: 210;
+      background: rgba(3, 34, 21, 0.94);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid #facc15;
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: #ffffff;
+      width: min(560px, 92vw);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      transition: left 0.35s ease;
+    }
+    body.sidebar-closed #ctech-step-nav-hud {
+      left: 50%;
+    }
+    #ctech-step-nav-hud.active {
+      display: flex;
+    }
+    .step-hud-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .step-hud-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #fde047;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .step-hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .step-hud-btn {
+      background: #006b3f;
+      color: #ffffff;
+      border: 1px solid rgba(250, 204, 21, 0.7);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .step-hud-btn:hover {
+      background: #059669;
+    }
+    .step-hud-btn.auto-active {
+      background: #ea580c;
+      border-color: #fde047;
+    }
+    .step-hud-btn.close-btn {
+      background: rgba(239, 68, 68, 0.85);
+      border-color: rgba(255, 255, 255, 0.4);
+      padding: 4px 8px;
+    }
+    .step-hud-progress {
+      font-size: 12px;
+      color: #ecfdf5;
+      line-height: 1.4;
+      background: rgba(0, 107, 63, 0.45);
+      padding: 6px 10px;
+      border-radius: 7px;
+      border-left: 3px solid #f97316;
+    }
+    .step-hud-nodes {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .step-hud-nodes::-webkit-scrollbar { display: none; }
+    .step-node-pill {
+      background: rgba(255, 255, 255, 0.12);
+      color: #d1fae5;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 10.8px;
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .step-node-pill.done {
+      background: rgba(16, 185, 129, 0.3);
+      color: #a7f3d0;
+      border-color: #10b981;
+    }
+    .step-node-pill.current {
+      background: #f59e0b;
+      color: #032215;
+      font-weight: 800;
+      border-color: #ffffff;
+    }
+    .step-node-arrow {
+      color: #fde047;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      #ctech-step-nav-hud {
+        top: 52px !important;
+        left: 50% !important;
+        width: 94vw !important;
+        padding: 8px 10px !important;
+      }
+      .step-hud-title { font-size: 11.5px; }
+      .step-hud-progress { font-size: 11.2px; padding: 5px 8px; }
+      .step-hud-btn { font-size: 10.8px; padding: 4px 8px; }
+    }
+  `;
+  document.head.appendChild(navStyle);
+
+  const hudEl = document.createElement('div');
+  hudEl.id = 'ctech-step-nav-hud';
+  hudEl.innerHTML = `
+    <div class="step-hud-top">
+      <div class="step-hud-title" id="step-hud-title-text">🧭 DẪN ĐƯỜNG TỪNG BƯỚC</div>
+      <div class="step-hud-controls">
+        <button type="button" class="step-hud-btn" id="step-hud-prev-btn" title="Lùi lại 1 nút">⬅ Lùi</button>
+        <button type="button" class="step-hud-btn" id="step-hud-next-btn" title="Đi tới nút tiếp theo">Bước tiếp ➔</button>
+        <button type="button" class="step-hud-btn" id="step-hud-auto-btn" title="Tự động đi qua từng nút">▶ Tự động đi</button>
+        <button type="button" class="step-hud-btn close-btn" id="step-hud-close-btn" title="Tắt dẫn đường">✕</button>
+      </div>
+    </div>
+    <div class="step-hud-progress" id="step-hud-desc"></div>
+    <div class="step-hud-nodes" id="step-hud-nodes-bar"></div>
+  `;
+  document.body.appendChild(hudEl);
+
+  // 4. LOGIC ĐIỀU KHIỂN CHẶNG ĐƯỜNG & LÀM SÁNG NÚT HOTSPOT TRONG 360°
+  let activeRoute = [];
+  let activeStepIndex = 0;
+  let autoWalkTimer = null;
+
+  function clearHotspotHighlightsInIframe() {
+    try {
+      const frame = document.getElementById('marzipano-frame');
+      const innerDoc = frame?.contentDocument || frame?.contentWindow?.document;
+      if (!innerDoc) return;
+      innerDoc.querySelectorAll('.ctech-next-step-hotspot').forEach(el => {
+        el.classList.remove('ctech-next-step-hotspot');
+      });
+      innerDoc.querySelectorAll('.ctech-next-step-badge').forEach(el => el.remove());
+    } catch (e) {}
+  }
+
+  function highlightNextHotspotInIframe(nextMarzId) {
+    clearHotspotHighlightsInIframe();
+    if (!nextMarzId) return;
+
+    try {
+      const frame = document.getElementById('marzipano-frame');
+      const innerDoc = frame?.contentDocument || frame?.contentWindow?.document;
+      if (!innerDoc) return;
+
+      // Chèn CSS hiệu ứng phát sáng vàng cam cho nút mũi tên chỉ đường trong iframe
+      if (!innerDoc.getElementById('ctech-hotspot-guide-css')) {
+        const st = innerDoc.createElement('style');
+        st.id = 'ctech-hotspot-guide-css';
+        st.textContent = `
+          @keyframes ctechGuidePulse {
+            0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.9), 0 0 20px #f97316; transform: scale(1.08); }
+            70% { box-shadow: 0 0 0 18px rgba(250, 204, 21, 0), 0 0 28px #fde047; transform: scale(1.18); }
+            100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0), 0 0 20px #f97316; transform: scale(1.08); }
+          }
+          .link-hotspot.ctech-next-step-hotspot {
+            background: rgba(234, 88, 12, 0.88) !important;
+            border: 3px solid #fde047 !important;
+            animation: ctechGuidePulse 1.3s infinite !important;
+            z-index: 999 !important;
+          }
+          .ctech-next-step-badge {
+            position: absolute;
+            bottom: 68px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: #ffffff;
+            border: 1.5px solid #fef08a;
+            border-radius: 20px;
+            padding: 4px 11px;
+            font-size: 11.5px;
+            font-weight: 800;
+            white-space: nowrap;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+            pointer-events: none;
+          }
+        `;
+        innerDoc.head.appendChild(st);
+      }
+
+      const nextName = removeAccents(getNodeLabel(nextMarzId));
+      const allHotspots = Array.from(innerDoc.querySelectorAll('.link-hotspot'));
+
+      allHotspots.forEach(hs => {
+        if (hs.offsetParent === null) return; // Chỉ xét hotspot của cảnh đang mở
+        const tip = hs.querySelector('.link-hotspot-tooltip');
+        const tipText = removeAccents(tip ? tip.textContent : '');
+
+        if (tipText && (nextName.includes(tipText) || tipText.includes(nextName))) {
+          hs.classList.add('ctech-next-step-hotspot');
+          const badge = innerDoc.createElement('div');
+          badge.className = 'ctech-next-step-badge';
+          badge.textContent = '👉 ĐI HƯỚNG NÀY: ' + getNodeLabel(nextMarzId);
+          hs.appendChild(badge);
+        }
+      });
+    } catch (e) {}
+  }
+
+  function renderStepHUD() {
+    if (!activeRoute.length) {
+      hudEl.classList.remove('active');
+      clearHotspotHighlightsInIframe();
+      return;
+    }
+
+    hudEl.classList.add('active');
+    const total = activeRoute.length;
+    const currId = activeRoute[activeStepIndex];
+    const nextId = activeStepIndex < total - 1 ? activeRoute[activeStepIndex + 1] : null;
+    const destId = activeRoute[total - 1];
+
+    document.getElementById('step-hud-title-text').textContent =
+      `🧭 CHẶNG ${activeStepIndex + 1}/${total} • ĐÍCH: ${getNodeLabel(destId)}`;
+
+    const descEl = document.getElementById('step-hud-desc');
+    if (nextId) {
+      descEl.innerHTML =
+        `📍 <b>Đang ở:</b> ${getNodeLabel(currId)}<br>` +
+        `👉 <b>Đi tiếp tới:</b> <span style="color:#fde047;font-weight:700;">${getNodeLabel(nextId)}</span> <i>(Bấm mũi tên phát sáng trên màn hình hoặc nút "Bước tiếp ➔")</i>`;
+    } else {
+      descEl.innerHTML =
+        `🎉 <b>ĐÃ ĐẾN NƠI:</b> <span style="color:#fde047;font-weight:700;">${getNodeLabel(currId)}</span>! Chúc bạn tham quan trải nghiệm vui vẻ.`;
+      stopAutoWalk();
+    }
+
+    const prevBtn = document.getElementById('step-hud-prev-btn');
+    const nextBtn = document.getElementById('step-hud-next-btn');
+    if (prevBtn) prevBtn.style.display = activeStepIndex > 0 ? 'inline-block' : 'none';
+    if (nextBtn) nextBtn.style.display = nextId ? 'inline-block' : 'none';
+
+    const nodesBar = document.getElementById('step-hud-nodes-bar');
+    nodesBar.innerHTML = '';
+    activeRoute.forEach((mId, idx) => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'step-node-pill' +
+        (idx < activeStepIndex ? ' done' : '') +
+        (idx === activeStepIndex ? ' current' : '');
+      pill.textContent = `${idx + 1}. ${getNodeLabel(mId)}`;
+      pill.onclick = () => goToRouteStep(idx);
+      nodesBar.appendChild(pill);
+
+      if (idx < total - 1) {
+        const arr = document.createElement('span');
+        arr.className = 'step-node-arrow';
+        arr.textContent = '➔';
+        nodesBar.appendChild(arr);
+      }
+    });
+
+    setTimeout(() => {
+      const curPill = nodesBar.querySelector('.step-node-pill.current');
+      if (curPill) curPill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }, 60);
+  }
+
+  function goToRouteStep(index) {
+    if (index < 0 || index >= activeRoute.length) return;
+    activeStepIndex = index;
+    const targetMarzId = activeRoute[activeStepIndex];
+    const nextMarzId = activeStepIndex < activeRoute.length - 1 ? activeRoute[activeStepIndex + 1] : null;
+    const sceneKey = getNodeSceneKey(targetMarzId);
+
+    selectScene(sceneKey, false, targetMarzId);
+    renderStepHUD();
+
+    setTimeout(() => {
+      highlightNextHotspotInIframe(nextMarzId);
+    }, 450);
+  }
+
+  function stopAutoWalk() {
+    if (autoWalkTimer) {
+      clearInterval(autoWalkTimer);
+      autoWalkTimer = null;
+    }
+    const autoBtn = document.getElementById('step-hud-auto-btn');
+    if (autoBtn) {
+      autoBtn.classList.remove('auto-active');
+      autoBtn.textContent = '▶ Tự động đi';
+    }
+  }
+
+  function toggleAutoWalk() {
+    if (autoWalkTimer) {
+      stopAutoWalk();
+      return;
+    }
+    if (activeStepIndex >= activeRoute.length - 1) {
+      activeStepIndex = 0;
+      goToRouteStep(0);
+    }
+    const autoBtn = document.getElementById('step-hud-auto-btn');
+    if (autoBtn) {
+      autoBtn.classList.add('auto-active');
+      autoBtn.textContent = '⏸ Đang tự đi...';
+    }
+    autoWalkTimer = setInterval(() => {
+      if (activeStepIndex < activeRoute.length - 1) {
+        goToRouteStep(activeStepIndex + 1);
+      } else {
+        stopAutoWalk();
+      }
+    }, 3400);
+  }
+
+  function stopStepNavigation() {
+    stopAutoWalk();
+    activeRoute = [];
+    activeStepIndex = 0;
+    renderStepHUD();
+  }
+
+  function startStepByStepTo(targetSceneKey, specificMarzId) {
+    stopAutoWalk();
+    const resolvedMarzId = specificMarzId || (typeof SCENES === 'object' && SCENES[targetSceneKey]?.marzipanoId);
+    if (!resolvedMarzId) {
+      selectScene(targetSceneKey, false);
+      return;
+    }
+
+    // Nếu người dùng đang ở cảnh Flycam trên cao (chưa đứng ở nút mặt đất nào), bắt đầu dẫn từ Ngoài cổng chính
+    const startMarzId = currentMarzipanoId || '9-ngoi-cng-chnh';
+    activeRoute = findShortestRoute(startMarzId, resolvedMarzId);
+    activeStepIndex = 0;
+
+    // Thu gọn khung chat trên điện thoại và ẩn hộp thuyết minh để nhìn rõ đường đi
+    if (window.innerWidth <= 768 && typeof toggleChatbot === 'function') {
+      toggleChatbot(false);
+    }
+    const infoCard = document.getElementById('info-card');
+    if (infoCard) infoCard.classList.remove('visible');
+
+    goToRouteStep(0);
+  }
+
+  document.getElementById('step-hud-prev-btn').onclick = () => {
+    stopAutoWalk();
+    if (activeStepIndex > 0) goToRouteStep(activeStepIndex - 1);
+  };
+  document.getElementById('step-hud-next-btn').onclick = () => {
+    stopAutoWalk();
+    if (activeStepIndex < activeRoute.length - 1) goToRouteStep(activeStepIndex + 1);
+  };
+  document.getElementById('step-hud-auto-btn').onclick = toggleAutoWalk;
+  document.getElementById('step-hud-close-btn').onclick = stopStepNavigation;
+
+  // Tự động đồng bộ tiến độ khi người dùng tự bấm trực tiếp vào nút mũi tên 360° trên màn hình
+  setInterval(() => {
+    if (!activeRoute.length || !currentMarzipanoId) return;
+    const idxInRoute = activeRoute.indexOf(currentMarzipanoId);
+    if (idxInRoute !== -1 && idxInRoute !== activeStepIndex) {
+      activeStepIndex = idxInRoute;
+      renderStepHUD();
+      const nextId = activeStepIndex < activeRoute.length - 1 ? activeRoute[activeStepIndex + 1] : null;
+      setTimeout(() => highlightNextHotspotInIframe(nextId), 350);
+    }
+  }, 400);
+
+  // 5. TÍCH HỢP NÚT "🧭 CHỈ ĐƯỜNG TỪNG BƯỚC" VÀO MỌI CÂU TRẢ LỜI CỦA CHATBOT
+  const origAppendBotMessage = window.appendBotMessage || appendBotMessage;
+
+  function enhancedAppendBotMessage(htmlText, targetSceneKey, targetLabel, specificMarzId = null, extraButtons = null) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg bot';
+    div.innerHTML = htmlText;
+
+    function createActionPair(sceneKey, marzId, jumpLabel) {
+      if (!sceneKey || !SCENES[sceneKey]) return;
+      const resolvedMarz = marzId || SCENES[sceneKey].marzipanoId;
+
+      const group = document.createElement('div');
+      group.className = 'chat-nav-btn-group';
+
+      // Nút 1: Đi thẳng tới phòng (nhảy nhanh)
+      const jumpBtn = document.createElement('button');
+      jumpBtn.type = 'button';
+      jumpBtn.className = 'chat-jump-btn';
+      jumpBtn.innerHTML = '📍 ' + (jumpLabel || SCENE_BUTTON_NAMES[sceneKey] || 'Đi thẳng tới đây');
+      jumpBtn.onclick = (e) => {
+        e.stopPropagation();
+        stopStepNavigation();
+        selectScene(sceneKey, false, marzId || null);
+      };
+      group.appendChild(jumpBtn);
+
+      // Nút 2: Chỉ đường từng bước qua các nút 360° (nếu điểm đến là cảnh mặt đất/phòng học)
+      if (resolvedMarz) {
+        const stepBtn = document.createElement('button');
+        stepBtn.type = 'button';
+        stepBtn.className = 'chat-step-guide-btn';
+        stepBtn.innerHTML = '🧭 Chỉ đường từng bước tới đây';
+        stepBtn.onclick = (e) => {
+          e.stopPropagation();
+          startStepByStepTo(sceneKey, resolvedMarz);
+        };
+        group.appendChild(stepBtn);
+      }
+
+      div.appendChild(group);
+    }
+
+    if (Array.isArray(extraButtons) && extraButtons.length > 0) {
+      extraButtons.forEach(btnInfo => {
+        if (!btnInfo || !SCENES[btnInfo.scene]) return;
+        createActionPair(btnInfo.scene, btnInfo.marzId, btnInfo.btnText);
+      });
+    } else if (targetSceneKey && SCENES[targetSceneKey]) {
+      createActionPair(targetSceneKey, specificMarzId, targetLabel);
+    }
+
+    chatMessagesEl.appendChild(div);
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  appendBotMessage = enhancedAppendBotMessage;
+  window.appendBotMessage = enhancedAppendBotMessage;
+  window.startCTECHStepByStepNavigation = startStepByStepTo;
+})();
