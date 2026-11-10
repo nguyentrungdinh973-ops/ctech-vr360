@@ -3814,87 +3814,27 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     };
   }
 })();
-/* === TÍNH NĂNG CHỈ ĐƯỜNG TỪNG BƯỚC (STEP-BY-STEP NAVIGATION) TRONG CHATBOT & 360° === */
-(function setupCTECHStepByStepNavigation() {
-  // 1. BẢN ĐỒ KẾT NỐI CÁC NÚT 360° TRONG KHUÔN VIÊN CTECH (TỪ CỔNG VÀO TỪNG PHÒNG HỌC)
-  const CAMPUS_EDGES = [
-    // Trục đường chính từ Cổng trường vào các tòa
+/* === TỰ ĐỘNG PHÁT SÁNG NÚT DẪN ĐƯỜNG TỪ VỊ TRÍ BẤT KỲ KHI TÌM PHÒNG TRONG CHATBOT === */
+(function setupCTECHSmartGlowNavigation() {
+  // 1. CẦU NỐI DỰ PHÒNG GIỮA CÁC TÒA NHÀ (Chỉ dùng khi dữ liệu gốc thiếu liên kết)
+  const FALLBACK_BRIDGES = [
     ['9-ngoi-cng-chnh', '10-bn-trong-cng'],
-    ['11-ngoi-cng-trng-', '9-ngoi-cng-chnh'],
     ['10-bn-trong-cng', '8-trc-mt-ton-n01'],
+    ['8-trc-mt-ton-n01', '2-bn-ngoi-n01'],
+    ['2-bn-ngoi-n01', '0-snh-n01'],
     ['10-bn-trong-cng', '24-ng-ba-gia-cc-ta'],
     ['24-ng-ba-gia-cc-ta', '13-mt-chnh-xng--t'],
     ['24-ng-ba-gia-cc-ta', '25-trc-ca-ta-n05-cng-tin'],
     ['24-ng-ba-gia-cc-ta', '52-ng-t-gia-cc-ta'],
-    ['52-ng-t-gia-cc-ta', '44-bn-trong-vm-hoa-gia-hai-ta'],
-    ['44-bn-trong-vm-hoa-gia-hai-ta', '30-trc-vm-hoa-bn-tri'],
-    ['44-bn-trong-vm-hoa-gia-hai-ta', '43-trc-vm-hoa-bn-phi'],
     ['52-ng-t-gia-cc-ta', '34-trc-ta-n03'],
-    ['52-ng-t-gia-cc-ta', '45-trc-mt-ta-n04'],
-    ['52-ng-t-gia-cc-ta', '51-ng-ba-gn-qung-trng-ctech'],
-
-    // Nhánh Tòa N01 (Hội trường, Tuyển sinh, CT HSSV, CNTT, Tiếng Nhật)
-    ['8-trc-mt-ton-n01', '2-bn-ngoi-n01'],
-    ['8-trc-mt-ton-n01', '12-mt-bn-tri-ton-n01'],
-    ['12-mt-bn-tri-ton-n01', '59-ng-ba-cng-ph-gn-n01'],
-    ['59-ng-ba-cng-ph-gn-n01', '60-cng-ph'],
-    ['2-bn-ngoi-n01', '0-snh-n01'],
-    ['0-snh-n01', '3-phng-cng-tc-tuyn-sinh'],
-    ['0-snh-n01', '1-hi-trng-n01'],
-    ['0-snh-n01', '4-phng-thc-hnh-my'],
-    ['4-phng-thc-hnh-my', '5-phng-thc-hng-v-m'],
-    ['0-snh-n01', '6-phng-ting-nht-ln'],
-    ['6-phng-ting-nht-ln', '7-phng-ting-nht-b'],
-
-    // Nhánh Tòa N02 (Xưởng Ô tô, Phòng Điện, Sân cầu lông, Ký túc xá)
-    ['13-mt-chnh-xng--t', '14-bn-trong-xng--t'],
-    ['13-mt-chnh-xng--t', '23-ng-i-quay-n02'],
-    ['13-mt-chnh-xng--t', '16-tng-hai-ta-n02'],
-    ['16-tng-hai-ta-n02', '15-tng-hai-ta-n02-trc-ca-phng-in'],
-    ['15-tng-hai-ta-n02-trc-ca-phng-in', '17-bn-trong-phng-in-n02'],
-    ['16-tng-hai-ta-n02', '18-trc-ca-i-vo-sn-cu-lng-n02'],
-    ['18-trc-ca-i-vo-sn-cu-lng-n02', '19-sn-cu-lng-n02'],
-    ['16-tng-hai-ta-n02', '20-tng-ba-ta-n02-k-tc-x'],
-    ['20-tng-ba-ta-n02-k-tc-x', '21-hanh-lang-tng-ba-ton-n02'],
-    ['21-hanh-lang-tng-ba-ton-n02', '22-bn-trong-phng-k-tc'],
-
-    // Nhánh Tòa N03 (P.101 Điều dưỡng, P.102 Trang điểm, P.103 Spa, P.105 Đồ họa)
     ['34-trc-ta-n03', '35-chnh-gia-ta-n03'],
-    ['34-trc-ta-n03', '31-trc-bi-rc-gn-n03'],
-    ['31-trc-bi-rc-gn-n03', '32-sau-ta-n03'],
-    ['32-sau-ta-n03', '33-sau-ta-n03-s-2'],
-    ['35-chnh-gia-ta-n03', '36-phng-thc-hnh-iu-dng'],
-    ['35-chnh-gia-ta-n03', '37-phng-thc-hnh-sc-p-trang-im'],
-    ['35-chnh-gia-ta-n03', '38-phng-thc-hnh-sc-p-iu-tr-da-mt'],
-    ['35-chnh-gia-ta-n03', '39-phng-chng-by-ca-thit-k--ha'],
-    ['35-chnh-gia-ta-n03', '40-tng-hai-ta-n03'],
-    ['40-tng-hai-ta-n03', '42-phng-hc-ta-n03'],
-
-    // Nhánh Tòa N04 (P.101 Y tế, P.106 Chế biến món ăn, Ngoại ngữ, Tiếng Hán)
+    ['52-ng-t-gia-cc-ta', '45-trc-mt-ta-n04'],
     ['45-trc-mt-ta-n04', '46-chnh-gia-ta-n04'],
-    ['46-chnh-gia-ta-n04', '47-phng-y-t-n04'],
-    ['46-chnh-gia-ta-n04', '50-phng-thc-hnh-ch-bin'],
-    ['46-chnh-gia-ta-n04', '41-phng-hc-ting-hn-ta-n04'],
-    ['46-chnh-gia-ta-n04', '48-phng-thc-hnh-thit-k--ha-n04'],
-    ['46-chnh-gia-ta-n04', '49-trung-tm-ngoi-ng-tng-2-n04'],
-
-    // Nhánh Tòa N05 (Căng tin, Kế toán - Đào tạo, Thư viện)
-    ['25-trc-ca-ta-n05-cng-tin', '26-cng-tin-n05'],
-    ['25-trc-ca-ta-n05-cng-tin', '27-phng-gio-vin-k-ton-o-to'],
-    ['27-phng-gio-vin-k-ton-o-to', '28-th-vin-n05'],
-    ['28-th-vin-n05', '29-trong-phng-hp-th-vin'],
-
-    // Nhánh Quảng trường Hoa Sen & Sân bóng đá
-    ['51-ng-ba-gn-qung-trng-ctech', '54-gia-sn-ctech'],
-    ['54-gia-sn-ctech', '55-qung-trng-ctech'],
-    ['59-ng-ba-cng-ph-gn-n01', '61-ng-vo-sn-bng'],
-    ['61-ng-vo-sn-bng', '56-on-ng-vo-sn-bng'],
-    ['56-on-ng-vo-sn-bng', '53-on-ng-gn-sn-bng'],
-    ['53-on-ng-gn-sn-bng', '57-v-tr--xem--bng'],
-    ['57-v-tr--xem--bng', '58-sn-bng']
+    ['52-ng-t-gia-cc-ta', '51-ng-ba-gn-qung-trng-ctech'],
+    ['51-ng-ba-gn-qung-trng-ctech', '54-gia-sn-ctech']
   ];
 
-  // 2. XÂY DỰNG TỪ ĐIỂN TÊN NÚT & ĐỒ THỊ TÌM ĐƯỜNG NGẮN NHẤT (BFS)
+  // 2. TỪ ĐIỂN TÊN CÁC ĐIỂM 360°
   const nodeInfoMap = {};
   if (typeof SCENES === 'object') {
     Object.keys(SCENES).forEach(sceneKey => {
@@ -3921,73 +3861,149 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     });
   }
 
+  function getIframeContext() {
+    const frame = document.getElementById('marzipano-frame');
+    if (!frame) return {};
+    try {
+      const innerWin = frame.contentWindow;
+      const innerDoc = frame.contentDocument || innerWin?.document;
+      const appData = innerWin?.APP_DATA;
+      return { frame, innerWin, innerDoc, appData };
+    } catch (e) {
+      return {};
+    }
+  }
+
   function getNodeLabel(marzId) {
     if (typeof MARZIPANO_NAME_OVERRIDES === 'object' && MARZIPANO_NAME_OVERRIDES[marzId]) {
       return MARZIPANO_NAME_OVERRIDES[marzId];
     }
-    return nodeInfoMap[marzId]?.label || marzId;
+    if (nodeInfoMap[marzId]?.label) return nodeInfoMap[marzId].label;
+    const { appData } = getIframeContext();
+    if (appData && Array.isArray(appData.scenes)) {
+      const found = appData.scenes.find(s => s.id === marzId);
+      if (found && found.name) return found.name;
+    }
+    return marzId;
   }
 
   function getNodeSceneKey(marzId) {
-    return nodeInfoMap[marzId]?.sceneKey || 'campus';
+    return nodeInfoMap[marzId]?.sceneKey || currentSceneKey || 'campus';
   }
 
-  function buildAdjacencyGraph() {
-    const adj = {};
-    function addEdge(a, b) {
-      if (!a || !b) return;
-      if (!adj[a]) adj[a] = new Set();
-      if (!adj[b]) adj[b] = new Set();
-      adj[a].add(b);
-      adj[b].add(a);
-    }
-    CAMPUS_EDGES.forEach(([u, v]) => addEdge(u, v));
+  // Lấy chính xác vị trí 360° hiện tại mà người dùng đang đứng
+  function getCurrentRealMarzId() {
+    const { frame, innerDoc } = getIframeContext();
+    const isGroundActive = frame && (frame.classList.contains('active') || frame.style.opacity === '1');
+    if (!isGroundActive && !currentMarzipanoId) return null;
 
-    // Tự động bổ sung thêm các liên kết hotspot thực tế từ Marzipano nếu đã tải
-    try {
-      const frame = document.getElementById('marzipano-frame');
-      const appData = frame?.contentWindow?.APP_DATA;
-      if (appData && Array.isArray(appData.scenes)) {
-        appData.scenes.forEach(sc => {
-          if (Array.isArray(sc.linkHotspots)) {
-            sc.linkHotspots.forEach(lh => addEdge(sc.id, lh.target));
-          }
-        });
+    if (innerDoc) {
+      const activeEl = innerDoc.querySelector('#sceneList .scene.current');
+      if (activeEl) {
+        const id = activeEl.getAttribute('data-id');
+        if (id) {
+          currentMarzipanoId = id;
+          return id;
+        }
       }
-    } catch (e) {}
-
-    return adj;
+    }
+    return currentMarzipanoId;
   }
 
-  function findShortestRoute(startMarzId, targetMarzId) {
+  // 3. ĐÁNH DẤU CHÍNH XÁC TỪNG NÚT .link-hotspot TRONG MARZIPANO THEO APP_DATA
+  function indexAllMarzipanoHotspots() {
+    const { innerDoc, appData } = getIframeContext();
+    if (!innerDoc || !appData || !Array.isArray(appData.scenes)) return;
+
+    const allHotspotEls = Array.from(innerDoc.querySelectorAll('.link-hotspot'));
+    let cursor = 0;
+
+    appData.scenes.forEach(sc => {
+      const links = sc.linkHotspots || [];
+      links.forEach(lh => {
+        const el = allHotspotEls[cursor++];
+        if (el) {
+          el.setAttribute('data-source-id', sc.id);
+          el.setAttribute('data-target-id', lh.target);
+          el.setAttribute('data-yaw', lh.yaw);
+          el.setAttribute('data-pitch', lh.pitch);
+        }
+      });
+    });
+  }
+
+  // 4. THUẬT TOÁN TÌM ĐƯỜNG ƯU TIÊN 100% NÚT MŨI TÊN THẬT TRONG APP_DATA (DIJKSTRA)
+  function findBestHotspotRoute(startMarzId, targetMarzId) {
     if (!targetMarzId) return [];
     const start = startMarzId || '9-ngoi-cng-chnh';
     if (start === targetMarzId) return [start];
 
-    const adj = buildAdjacencyGraph();
-    const queue = [[start]];
-    const visited = new Set([start]);
-
-    while (queue.length > 0) {
-      const path = queue.shift();
-      const curr = path[path.length - 1];
-      const neighbors = adj[curr] ? Array.from(adj[curr]) : [];
-
-      for (const nxt of neighbors) {
-        if (nxt === targetMarzId) {
-          return [...path, nxt];
-        }
-        if (!visited.has(nxt)) {
-          visited.add(nxt);
-          queue.push([...path, nxt]);
-        }
+    const adj = {};
+    function addWeightedEdge(u, v, cost) {
+      if (!u || !v) return;
+      if (!adj[u]) adj[u] = [];
+      const existing = adj[u].find(e => e.to === v);
+      if (!existing) {
+        adj[u].push({ to: v, cost });
+      } else if (cost < existing.cost) {
+        existing.cost = cost;
       }
     }
-    // Dự phòng nếu chọn cảnh chưa nối trực tiếp
-    return [start, targetMarzId];
+
+    const { appData } = getIframeContext();
+    if (appData && Array.isArray(appData.scenes)) {
+      appData.scenes.forEach(sc => {
+        (sc.linkHotspots || []).forEach(lh => {
+          // Cạnh có nút mũi tên thật trên màn hình: Chi phí = 1 (Ưu tiên tuyệt đối)
+          addWeightedEdge(sc.id, lh.target, 1);
+          // Chiều ngược lại dự phòng: Chi phí = 15
+          addWeightedEdge(lh.target, sc.id, 15);
+        });
+      });
+    }
+
+    // Cầu nối dự phòng nếu có 2 khu vực chưa gắn hotspot nối nhau: Chi phí = 40
+    FALLBACK_BRIDGES.forEach(([a, b]) => {
+      addWeightedEdge(a, b, 40);
+      addWeightedEdge(b, a, 40);
+    });
+
+    const dist = { [start]: 0 };
+    const prev = {};
+    const visited = new Set();
+    const pq = [{ id: start, d: 0 }];
+
+    while (pq.length > 0) {
+      pq.sort((a, b) => a.d - b.d);
+      const { id: u } = pq.shift();
+      if (visited.has(u)) continue;
+      visited.add(u);
+
+      if (u === targetMarzId) break;
+
+      (adj[u] || []).forEach(({ to: v, cost }) => {
+        if (visited.has(v)) return;
+        const alt = dist[u] + cost;
+        if (dist[v] === undefined || alt < dist[v]) {
+          dist[v] = alt;
+          prev[v] = u;
+          pq.push({ id: v, d: alt });
+        }
+      });
+    }
+
+    if (prev[targetMarzId] === undefined) return [start, targetMarzId];
+
+    const route = [];
+    let curr = targetMarzId;
+    while (curr) {
+      route.unshift(curr);
+      curr = prev[curr];
+    }
+    return route;
   }
 
-  // 3. GIAO DIỆN THANH DẪN ĐƯỜNG TỪNG BƯỚC (NAVIGATION HUD) & NÚT CHAT
+  // 5. GIAO DIỆN PHÁT SÁNG NÚT TRÊN MÀN HÌNH 360° & TRÊN FLYCAM
   const navStyle = document.createElement('style');
   navStyle.textContent = `
     .chat-nav-btn-group {
@@ -3996,56 +4012,64 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       gap: 6px;
       margin-top: 7px;
     }
-    .chat-jump-btn {
-      margin-top: 0 !important;
-    }
+    .chat-jump-btn { margin-top: 0 !important; }
     .chat-step-guide-btn {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
       color: #ffffff;
-      border: 1px solid #fde047;
+      border: 1px solid #fef08a;
       border-radius: 5px;
       padding: 5px 10px;
       font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
-      transition: transform 0.15s ease, filter 0.15s ease;
+      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
     }
-    .chat-step-guide-btn:hover {
-      filter: brightness(1.1);
-      transform: translateY(-1px);
+    /* Hiệu ứng phát sáng nhãn tòa nhà trên cảnh Flycam */
+    @keyframes ctechAerialTagPulse {
+      0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.95), 0 0 22px #f97316; background: #ea580c; }
+      70% { box-shadow: 0 0 0 18px rgba(250, 204, 21, 0), 0 0 32px #fde047; background: #d97706; }
+      100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0), 0 0 22px #f97316; background: #ea580c; }
+    }
+    .tlu-hotspot-tag.ctech-aerial-glow {
+      animation: ctechAerialTagPulse 1.2s infinite !important;
+      border: 2.5px solid #fef08a !important;
+      z-index: 95 !important;
+    }
+    .ctech-aerial-guide-badge {
+      display: block;
+      margin-top: 4px;
+      padding: 2px 7px;
+      background: #fef08a;
+      color: #032215;
+      font-weight: 900;
+      font-size: 10.5px;
+      border-radius: 10px;
     }
 
-    /* Thanh HUD Chỉ đường từng bước trên màn hình 360 */
+    /* Thanh HUD dẫn đường gọn gàng phía trên */
     #ctech-step-nav-hud {
       position: fixed;
-      top: 14px;
+      top: 12px;
       left: calc(50% + 100px);
       transform: translateX(-50%);
       z-index: 210;
-      background: rgba(3, 34, 21, 0.94);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: rgba(3, 34, 21, 0.95);
       border: 1.5px solid #facc15;
       border-radius: 12px;
-      padding: 10px 14px;
+      padding: 9px 14px;
       color: #ffffff;
       width: min(560px, 92vw);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
       display: none;
       flex-direction: column;
-      gap: 8px;
+      gap: 7px;
       transition: left 0.35s ease;
     }
-    body.sidebar-closed #ctech-step-nav-hud {
-      left: 50%;
-    }
-    #ctech-step-nav-hud.active {
-      display: flex;
-    }
+    body.sidebar-closed #ctech-step-nav-hud { left: 50%; }
+    #ctech-step-nav-hud.active { display: flex; }
     .step-hud-top {
       display: flex;
       align-items: center;
@@ -4056,44 +4080,29 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       font-size: 12.5px;
       font-weight: 800;
       color: #fde047;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
     .step-hud-controls {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
     .step-hud-btn {
       background: #006b3f;
       color: #ffffff;
       border: 1px solid rgba(250, 204, 21, 0.7);
       border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 11.5px;
+      padding: 4px 9px;
+      font-size: 11.2px;
       font-weight: 700;
       cursor: pointer;
-      white-space: nowrap;
     }
-    .step-hud-btn:hover {
-      background: #059669;
-    }
-    .step-hud-btn.auto-active {
-      background: #ea580c;
-      border-color: #fde047;
-    }
-    .step-hud-btn.close-btn {
-      background: rgba(239, 68, 68, 0.85);
-      border-color: rgba(255, 255, 255, 0.4);
-      padding: 4px 8px;
-    }
+    .step-hud-btn.auto-active { background: #ea580c; border-color: #fde047; }
+    .step-hud-btn.close-btn { background: #dc2626; border-color: #fca5a5; }
     .step-hud-progress {
-      font-size: 12px;
+      font-size: 11.8px;
       color: #ecfdf5;
-      line-height: 1.4;
       background: rgba(0, 107, 63, 0.45);
-      padding: 6px 10px;
+      padding: 5px 10px;
       border-radius: 7px;
       border-left: 3px solid #f97316;
     }
@@ -4102,7 +4111,6 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       align-items: center;
       gap: 5px;
       overflow-x: auto;
-      padding-bottom: 2px;
       scrollbar-width: none;
     }
     .step-hud-nodes::-webkit-scrollbar { display: none; }
@@ -4117,33 +4125,37 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       cursor: pointer;
       flex-shrink: 0;
     }
-    .step-node-pill.done {
-      background: rgba(16, 185, 129, 0.3);
-      color: #a7f3d0;
-      border-color: #10b981;
-    }
-    .step-node-pill.current {
-      background: #f59e0b;
-      color: #032215;
+    .step-node-pill.done { background: rgba(16, 185, 129, 0.35); color: #a7f3d0; border-color: #10b981; }
+    .step-node-pill.current { background: #f59e0b; color: #032215; font-weight: 800; border-color: #ffffff; }
+    .step-node-arrow { color: #fde047; font-size: 11px; flex-shrink: 0; }
+
+    /* Nút mũi tên phát sáng dự phòng giữa màn hình nếu cảnh hiện tại thiếu nút nối trực tiếp */
+    #ctech-floating-step-beacon {
+      position: fixed;
+      bottom: 118px;
+      left: calc(50% + 100px);
+      transform: translateX(-50%);
+      z-index: 205;
+      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+      color: #ffffff;
+      border: 2.5px solid #fef08a;
+      border-radius: 999px;
+      padding: 9px 20px;
+      font-size: 13px;
       font-weight: 800;
-      border-color: #ffffff;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 25px rgba(249, 115, 22, 0.95);
+      animation: ctechAerialTagPulse 1.2s infinite;
     }
-    .step-node-arrow {
-      color: #fde047;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
+    body.sidebar-closed #ctech-floating-step-beacon { left: 50%; }
+    #ctech-floating-step-beacon.show-beacon { display: inline-flex; }
 
     @media (max-width: 768px) {
-      #ctech-step-nav-hud {
-        top: 52px !important;
-        left: 50% !important;
-        width: 94vw !important;
-        padding: 8px 10px !important;
-      }
-      .step-hud-title { font-size: 11.5px; }
-      .step-hud-progress { font-size: 11.2px; padding: 5px 8px; }
-      .step-hud-btn { font-size: 10.8px; padding: 4px 8px; }
+      #ctech-step-nav-hud { top: 48px !important; left: 50% !important; width: 94vw !important; }
+      #ctech-floating-step-beacon { left: 50% !important; bottom: 145px !important; font-size: 11.8px; padding: 7px 15px; }
     }
   `;
   document.head.appendChild(navStyle);
@@ -4152,12 +4164,12 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   hudEl.id = 'ctech-step-nav-hud';
   hudEl.innerHTML = `
     <div class="step-hud-top">
-      <div class="step-hud-title" id="step-hud-title-text">🧭 DẪN ĐƯỜNG TỪNG BƯỚC</div>
+      <div class="step-hud-title" id="step-hud-title-text">🧭 DẪN ĐƯỜNG TỪ VỊ TRÍ CỦA BẠN</div>
       <div class="step-hud-controls">
-        <button type="button" class="step-hud-btn" id="step-hud-prev-btn" title="Lùi lại 1 nút">⬅ Lùi</button>
-        <button type="button" class="step-hud-btn" id="step-hud-next-btn" title="Đi tới nút tiếp theo">Bước tiếp ➔</button>
-        <button type="button" class="step-hud-btn" id="step-hud-auto-btn" title="Tự động đi qua từng nút">▶ Tự động đi</button>
-        <button type="button" class="step-hud-btn close-btn" id="step-hud-close-btn" title="Tắt dẫn đường">✕</button>
+        <button type="button" class="step-hud-btn" id="step-hud-prev-btn">⬅ Lùi</button>
+        <button type="button" class="step-hud-btn" id="step-hud-next-btn">Bước tiếp ➔</button>
+        <button type="button" class="step-hud-btn" id="step-hud-auto-btn">▶ Tự động đi</button>
+        <button type="button" class="step-hud-btn close-btn" id="step-hud-close-btn">✕</button>
       </div>
     </div>
     <div class="step-hud-progress" id="step-hud-desc"></div>
@@ -4165,91 +4177,162 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   `;
   document.body.appendChild(hudEl);
 
-  // 4. LOGIC ĐIỀU KHIỂN CHẶNG ĐƯỜNG & LÀM SÁNG NÚT HOTSPOT TRONG 360°
+  const floatingBeacon = document.createElement('button');
+  floatingBeacon.type = 'button';
+  floatingBeacon.id = 'ctech-floating-step-beacon';
+  document.body.appendChild(floatingBeacon);
+
+  // 6. HÀM BẬT PHÁT SÁNG NÚT MŨI TÊN TRONG 360° & XOAY CAMERA VỀ HƯỚNG NÚT ĐÓ
   let activeRoute = [];
   let activeStepIndex = 0;
   let autoWalkTimer = null;
+  let targetBuildingKey = null;
 
-  function clearHotspotHighlightsInIframe() {
-    try {
-      const frame = document.getElementById('marzipano-frame');
-      const innerDoc = frame?.contentDocument || frame?.contentWindow?.document;
-      if (!innerDoc) return;
-      innerDoc.querySelectorAll('.ctech-next-step-hotspot').forEach(el => {
-        el.classList.remove('ctech-next-step-hotspot');
-      });
-      innerDoc.querySelectorAll('.ctech-next-step-badge').forEach(el => el.remove());
-    } catch (e) {}
+  function clearAllGlowEffects() {
+    document.querySelectorAll('.tlu-hotspot-tag.ctech-aerial-glow').forEach(el => {
+      el.classList.remove('ctech-aerial-glow');
+      el.querySelectorAll('.ctech-aerial-guide-badge').forEach(b => b.remove());
+    });
+    floatingBeacon.classList.remove('show-beacon');
+
+    const { innerDoc } = getIframeContext();
+    if (!innerDoc) return;
+    innerDoc.querySelectorAll('.ctech-next-step-hotspot').forEach(el => {
+      el.classList.remove('ctech-next-step-hotspot');
+    });
+    innerDoc.querySelectorAll('.ctech-next-step-badge').forEach(el => el.remove());
   }
 
-  function highlightNextHotspotInIframe(nextMarzId) {
-    clearHotspotHighlightsInIframe();
-    if (!nextMarzId) return;
+  function highlightCurrentStepButtons() {
+    clearAllGlowEffects();
+    if (!activeRoute.length) return;
 
-    try {
-      const frame = document.getElementById('marzipano-frame');
-      const innerDoc = frame?.contentDocument || frame?.contentWindow?.document;
-      if (!innerDoc) return;
+    const currRealId = getCurrentRealMarzId();
 
-      // Chèn CSS hiệu ứng phát sáng vàng cam cho nút mũi tên chỉ đường trong iframe
-      if (!innerDoc.getElementById('ctech-hotspot-guide-css')) {
-        const st = innerDoc.createElement('style');
-        st.id = 'ctech-hotspot-guide-css';
-        st.textContent = `
-          @keyframes ctechGuidePulse {
-            0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.9), 0 0 20px #f97316; transform: scale(1.08); }
-            70% { box-shadow: 0 0 0 18px rgba(250, 204, 21, 0), 0 0 28px #fde047; transform: scale(1.18); }
-            100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0), 0 0 20px #f97316; transform: scale(1.08); }
+    // TRƯỜNG HỢP 1: Người dùng đang ở cảnh Flycam trên cao (Chưa vào mặt đất)
+    if (!currRealId) {
+      if (targetBuildingKey) {
+        document.querySelectorAll('.tlu-hotspot-tag').forEach(tag => {
+          const txt = (tag.textContent || '').toLowerCase();
+          if (txt.includes(targetBuildingKey.toLowerCase())) {
+            tag.classList.add('ctech-aerial-glow');
+            const badge = document.createElement('span');
+            badge.className = 'ctech-aerial-guide-badge';
+            badge.textContent = '👉 BẤM VÀO TÒA NÀY ĐỂ ĐI TỚI PHÒNG';
+            tag.appendChild(badge);
           }
-          .link-hotspot.ctech-next-step-hotspot {
-            background: rgba(234, 88, 12, 0.88) !important;
-            border: 3px solid #fde047 !important;
-            animation: ctechGuidePulse 1.3s infinite !important;
-            z-index: 999 !important;
-          }
-          .ctech-next-step-badge {
-            position: absolute;
-            bottom: 68px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-            color: #ffffff;
-            border: 1.5px solid #fef08a;
-            border-radius: 20px;
-            padding: 4px 11px;
-            font-size: 11.5px;
-            font-weight: 800;
-            white-space: nowrap;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.55);
-            pointer-events: none;
-          }
-        `;
-        innerDoc.head.appendChild(st);
+        });
       }
+      floatingBeacon.classList.add('show-beacon');
+      floatingBeacon.innerHTML = `🧭 Bấm vào đây để bắt đầu đi tới: ${getNodeLabel(activeRoute[activeRoute.length - 1])} ➔`;
+      floatingBeacon.onclick = () => jumpToRouteStep(0);
+      return;
+    }
 
-      const nextName = removeAccents(getNodeLabel(nextMarzId));
-      const allHotspots = Array.from(innerDoc.querySelectorAll('.link-hotspot'));
+    // TRƯỜNG HỢP 2: Người dùng đang đứng ở bất kỳ cảnh 360° nào dưới mặt đất
+    const nextId = activeStepIndex < activeRoute.length - 1 ? activeRoute[activeStepIndex + 1] : null;
+    if (!nextId) return;
 
-      allHotspots.forEach(hs => {
-        if (hs.offsetParent === null) return; // Chỉ xét hotspot của cảnh đang mở
-        const tip = hs.querySelector('.link-hotspot-tooltip');
-        const tipText = removeAccents(tip ? tip.textContent : '');
+    const { innerDoc, innerWin } = getIframeContext();
+    if (!innerDoc) return;
 
-        if (tipText && (nextName.includes(tipText) || tipText.includes(nextName))) {
-          hs.classList.add('ctech-next-step-hotspot');
-          const badge = innerDoc.createElement('div');
-          badge.className = 'ctech-next-step-badge';
-          badge.textContent = '👉 ĐI HƯỚNG NÀY: ' + getNodeLabel(nextMarzId);
-          hs.appendChild(badge);
+    indexAllMarzipanoHotspots();
+
+    // Chèn CSS phát sáng rực rỡ vào trong iframe Marzipano
+    if (!innerDoc.getElementById('ctech-hotspot-guide-css')) {
+      const st = innerDoc.createElement('style');
+      st.id = 'ctech-hotspot-guide-css';
+      st.textContent = `
+        @keyframes ctechHotspotGlowPulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(250, 204, 21, 1), 0 0 28px 8px #ea580c;
+            transform: scale(1.15);
+          }
+          65% {
+            box-shadow: 0 0 0 24px rgba(250, 204, 21, 0), 0 0 38px 14px #fde047;
+            transform: scale(1.28);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(250, 204, 21, 0), 0 0 28px 8px #ea580c;
+            transform: scale(1.15);
+          }
         }
-      });
-    } catch (e) {}
+        .link-hotspot.ctech-next-step-hotspot {
+          background: radial-gradient(circle, #f59e0b 0%, #ea580c 85%) !important;
+          border: 3.5px solid #fef08a !important;
+          animation: ctechHotspotGlowPulse 1.15s infinite !important;
+          z-index: 9999 !important;
+          overflow: visible !important;
+        }
+        .ctech-next-step-badge {
+          position: absolute;
+          bottom: 70px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+          color: #ffffff;
+          border: 2px solid #fef08a;
+          border-radius: 999px;
+          padding: 5px 13px;
+          font-size: 12px;
+          font-weight: 800;
+          white-space: nowrap;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
+          pointer-events: none;
+          z-index: 10000;
+        }
+      `;
+      innerDoc.head.appendChild(st);
+    }
+
+    // Tìm đúng nút .link-hotspot của cảnh hiện tại dẫn sang bước tiếp theo
+    let matchedHotspot = innerDoc.querySelector(
+      `.link-hotspot[data-source-id="${currRealId}"][data-target-id="${nextId}"]`
+    );
+
+    // Nếu không có cạnh trực tiếp sang nextId, kiểm tra xem có nút nào dẫn tới các bước phía trước trong lộ trình không
+    if (!matchedHotspot) {
+      for (let i = activeRoute.length - 1; i > activeStepIndex; i--) {
+        const candidateTarget = activeRoute[i];
+        const candidateEl = innerDoc.querySelector(
+          `.link-hotspot[data-source-id="${currRealId}"][data-target-id="${candidateTarget}"]`
+        );
+        if (candidateEl) {
+          matchedHotspot = candidateEl;
+          break;
+        }
+      }
+    }
+
+    if (matchedHotspot) {
+      matchedHotspot.classList.add('ctech-next-step-hotspot');
+      const badge = innerDoc.createElement('div');
+      badge.className = 'ctech-next-step-badge';
+      badge.textContent = '👉 ĐI LỐI NÀY: ' + getNodeLabel(nextId);
+      matchedHotspot.appendChild(badge);
+
+      // Tự động xoay nhẹ góc nhìn 360° hướng thẳng về phía nút mũi tên phát sáng
+      const yaw = parseFloat(matchedHotspot.getAttribute('data-yaw'));
+      const pitch = parseFloat(matchedHotspot.getAttribute('data-pitch'));
+      if (!isNaN(yaw) && innerWin) {
+        innerWin.postMessage({
+          type: 'VR_GYRO_LOOK',
+          yaw: yaw,
+          pitch: isNaN(pitch) ? 0 : Math.max(-0.35, Math.min(0.35, pitch))
+        }, '*');
+      }
+    } else {
+      // Nếu cảnh hiện tại không có mũi tên nối sang bước kế, hiện nút mũi tên phát sáng hỗ trợ ngay trên màn hình
+      floatingBeacon.classList.add('show-beacon');
+      floatingBeacon.innerHTML = `👉 Đi tiếp tới: ${getNodeLabel(nextId)} ➔`;
+      floatingBeacon.onclick = () => jumpToRouteStep(activeStepIndex + 1);
+    }
   }
 
   function renderStepHUD() {
     if (!activeRoute.length) {
       hudEl.classList.remove('active');
-      clearHotspotHighlightsInIframe();
+      clearAllGlowEffects();
       return;
     }
 
@@ -4260,23 +4343,21 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     const destId = activeRoute[total - 1];
 
     document.getElementById('step-hud-title-text').textContent =
-      `🧭 CHẶNG ${activeStepIndex + 1}/${total} • ĐÍCH: ${getNodeLabel(destId)}`;
+      `🧭 BƯỚC ${activeStepIndex + 1}/${total} • ĐÍCH: ${getNodeLabel(destId)}`;
 
     const descEl = document.getElementById('step-hud-desc');
     if (nextId) {
       descEl.innerHTML =
-        `📍 <b>Đang ở:</b> ${getNodeLabel(currId)}<br>` +
-        `👉 <b>Đi tiếp tới:</b> <span style="color:#fde047;font-weight:700;">${getNodeLabel(nextId)}</span> <i>(Bấm mũi tên phát sáng trên màn hình hoặc nút "Bước tiếp ➔")</i>`;
+        `📍 <b>Vị trí hiện tại:</b> ${getNodeLabel(currId)}<br>` +
+        `✨ <b>Nút phát sáng tiếp theo:</b> <span style="color:#fde047;font-weight:700;">${getNodeLabel(nextId)}</span>`;
     } else {
       descEl.innerHTML =
-        `🎉 <b>ĐÃ ĐẾN NƠI:</b> <span style="color:#fde047;font-weight:700;">${getNodeLabel(currId)}</span>! Chúc bạn tham quan trải nghiệm vui vẻ.`;
+        `🎉 <b>ĐÃ TỚI ĐÍCH:</b> <span style="color:#fde047;font-weight:700;">${getNodeLabel(currId)}</span>!`;
       stopAutoWalk();
     }
 
-    const prevBtn = document.getElementById('step-hud-prev-btn');
-    const nextBtn = document.getElementById('step-hud-next-btn');
-    if (prevBtn) prevBtn.style.display = activeStepIndex > 0 ? 'inline-block' : 'none';
-    if (nextBtn) nextBtn.style.display = nextId ? 'inline-block' : 'none';
+    document.getElementById('step-hud-prev-btn').style.display = activeStepIndex > 0 ? 'inline-block' : 'none';
+    document.getElementById('step-hud-next-btn').style.display = nextId ? 'inline-block' : 'none';
 
     const nodesBar = document.getElementById('step-hud-nodes-bar');
     nodesBar.innerHTML = '';
@@ -4287,7 +4368,7 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         (idx < activeStepIndex ? ' done' : '') +
         (idx === activeStepIndex ? ' current' : '');
       pill.textContent = `${idx + 1}. ${getNodeLabel(mId)}`;
-      pill.onclick = () => goToRouteStep(idx);
+      pill.onclick = () => jumpToRouteStep(idx);
       nodesBar.appendChild(pill);
 
       if (idx < total - 1) {
@@ -4298,25 +4379,19 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       }
     });
 
-    setTimeout(() => {
-      const curPill = nodesBar.querySelector('.step-node-pill.current');
-      if (curPill) curPill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }, 60);
+    highlightCurrentStepButtons();
   }
 
-  function goToRouteStep(index) {
+  function jumpToRouteStep(index) {
     if (index < 0 || index >= activeRoute.length) return;
     activeStepIndex = index;
     const targetMarzId = activeRoute[activeStepIndex];
-    const nextMarzId = activeStepIndex < activeRoute.length - 1 ? activeRoute[activeStepIndex + 1] : null;
     const sceneKey = getNodeSceneKey(targetMarzId);
 
     selectScene(sceneKey, false, targetMarzId);
-    renderStepHUD();
-
     setTimeout(() => {
-      highlightNextHotspotInIframe(nextMarzId);
-    }, 450);
+      renderStepHUD();
+    }, 380);
   }
 
   function stopAutoWalk() {
@@ -4336,22 +4411,21 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       stopAutoWalk();
       return;
     }
-    if (activeStepIndex >= activeRoute.length - 1) {
-      activeStepIndex = 0;
-      goToRouteStep(0);
-    }
     const autoBtn = document.getElementById('step-hud-auto-btn');
     if (autoBtn) {
       autoBtn.classList.add('auto-active');
       autoBtn.textContent = '⏸ Đang tự đi...';
     }
+    if (!getCurrentRealMarzId()) {
+      jumpToRouteStep(0);
+    }
     autoWalkTimer = setInterval(() => {
       if (activeStepIndex < activeRoute.length - 1) {
-        goToRouteStep(activeStepIndex + 1);
+        jumpToRouteStep(activeStepIndex + 1);
       } else {
         stopAutoWalk();
       }
-    }, 3400);
+    }, 3200);
   }
 
   function stopStepNavigation() {
@@ -4361,55 +4435,61 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
     renderStepHUD();
   }
 
-  function startStepByStepTo(targetSceneKey, specificMarzId) {
+  // Khởi tạo lộ trình phát sáng ngay từ vị trí hiện tại của người dùng (Không dịch chuyển cưỡng bức)
+  function activateGlowRouteFromCurrentSpot(targetSceneKey, specificMarzId, enterFirstStepImmediately = false) {
     stopAutoWalk();
-    const resolvedMarzId = specificMarzId || (typeof SCENES === 'object' && SCENES[targetSceneKey]?.marzipanoId);
-    if (!resolvedMarzId) {
-      selectScene(targetSceneKey, false);
-      return;
-    }
+    targetBuildingKey = targetSceneKey;
+    const destMarzId = specificMarzId || (typeof SCENES === 'object' && SCENES[targetSceneKey]?.marzipanoId);
+    if (!destMarzId) return;
 
-    // Nếu người dùng đang ở cảnh Flycam trên cao (chưa đứng ở nút mặt đất nào), bắt đầu dẫn từ Ngoài cổng chính
-    const startMarzId = currentMarzipanoId || '9-ngoi-cng-chnh';
-    activeRoute = findShortestRoute(startMarzId, resolvedMarzId);
+    const currentRealId = getCurrentRealMarzId();
+    // Nếu đang đứng ở bất kỳ cảnh 360° nào -> Tính đường trực tiếp từ đúng cảnh đó!
+    // Nếu đang ở trên cao (Flycam) -> Tính đường từ đầu tòa nhà hoặc cổng chính
+    const startId = currentRealId || (typeof SCENES === 'object' && SCENES[targetSceneKey]?.marzipanoId) || '9-ngoi-cng-chnh';
+
+    activeRoute = findBestHotspotRoute(startId, destMarzId);
     activeStepIndex = 0;
 
-    // Thu gọn khung chat trên điện thoại và ẩn hộp thuyết minh để nhìn rõ đường đi
-    if (window.innerWidth <= 768 && typeof toggleChatbot === 'function') {
-      toggleChatbot(false);
+    if (enterFirstStepImmediately && !currentRealId) {
+      jumpToRouteStep(0);
+    } else {
+      renderStepHUD();
     }
-    const infoCard = document.getElementById('info-card');
-    if (infoCard) infoCard.classList.remove('visible');
-
-    goToRouteStep(0);
   }
 
   document.getElementById('step-hud-prev-btn').onclick = () => {
     stopAutoWalk();
-    if (activeStepIndex > 0) goToRouteStep(activeStepIndex - 1);
+    if (activeStepIndex > 0) jumpToRouteStep(activeStepIndex - 1);
   };
   document.getElementById('step-hud-next-btn').onclick = () => {
     stopAutoWalk();
-    if (activeStepIndex < activeRoute.length - 1) goToRouteStep(activeStepIndex + 1);
+    if (activeStepIndex < activeRoute.length - 1) jumpToRouteStep(activeStepIndex + 1);
   };
   document.getElementById('step-hud-auto-btn').onclick = toggleAutoWalk;
   document.getElementById('step-hud-close-btn').onclick = stopStepNavigation;
 
-  // Tự động đồng bộ tiến độ khi người dùng tự bấm trực tiếp vào nút mũi tên 360° trên màn hình
+  // 7. THEO DÕI KHI NGƯỜI DÙNG BẤM NÚT MŨI TÊN DI CHUYỂN TRONG 360° ĐỂ TỰ BẬT SÁNG NÚT TIẾP THEO
+  let lastTrackedMarzId = null;
   setInterval(() => {
-    if (!activeRoute.length || !currentMarzipanoId) return;
-    const idxInRoute = activeRoute.indexOf(currentMarzipanoId);
-    if (idxInRoute !== -1 && idxInRoute !== activeStepIndex) {
+    const realId = getCurrentRealMarzId();
+    if (!realId || realId === lastTrackedMarzId) return;
+    lastTrackedMarzId = realId;
+
+    if (!activeRoute.length) return;
+    const destId = activeRoute[activeRoute.length - 1];
+    const idxInRoute = activeRoute.indexOf(realId);
+
+    if (idxInRoute !== -1) {
       activeStepIndex = idxInRoute;
-      renderStepHUD();
-      const nextId = activeStepIndex < activeRoute.length - 1 ? activeRoute[activeStepIndex + 1] : null;
-      setTimeout(() => highlightNextHotspotInIframe(nextId), 350);
+    } else {
+      // Nếu người dùng rẽ sang một ngã khác, tự động tính lại đường ngắn nhất từ ngã rẽ đó tới đích!
+      activeRoute = findBestHotspotRoute(realId, destId);
+      activeStepIndex = 0;
     }
-  }, 400);
+    renderStepHUD();
+  }, 300);
 
-  // 5. TÍCH HỢP NÚT "🧭 CHỈ ĐƯỜNG TỪNG BƯỚC" VÀO MỌI CÂU TRẢ LỜI CỦA CHATBOT
-  const origAppendBotMessage = window.appendBotMessage || appendBotMessage;
-
+  // 8. TỰ ĐỘNG BẬT PHÁT SÁNG NÚT DẪN ĐƯỜNG NGAY KHI CHATBOT TRẢ LỜI TÌM PHÒNG
   function enhancedAppendBotMessage(htmlText, targetSceneKey, targetLabel, specificMarzId = null, extraButtons = null) {
     const div = document.createElement('div');
     div.className = 'chat-msg bot';
@@ -4422,30 +4502,30 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
       const group = document.createElement('div');
       group.className = 'chat-nav-btn-group';
 
-      // Nút 1: Đi thẳng tới phòng (nhảy nhanh)
-      const jumpBtn = document.createElement('button');
-      jumpBtn.type = 'button';
-      jumpBtn.className = 'chat-jump-btn';
-      jumpBtn.innerHTML = '📍 ' + (jumpLabel || SCENE_BUTTON_NAMES[sceneKey] || 'Đi thẳng tới đây');
-      jumpBtn.onclick = (e) => {
-        e.stopPropagation();
-        stopStepNavigation();
-        selectScene(sceneKey, false, marzId || null);
-      };
-      group.appendChild(jumpBtn);
-
-      // Nút 2: Chỉ đường từng bước qua các nút 360° (nếu điểm đến là cảnh mặt đất/phòng học)
       if (resolvedMarz) {
         const stepBtn = document.createElement('button');
         stepBtn.type = 'button';
         stepBtn.className = 'chat-step-guide-btn';
-        stepBtn.innerHTML = '🧭 Chỉ đường từng bước tới đây';
+        stepBtn.innerHTML = '🧭 Chỉ đường từng bước từ đây';
         stepBtn.onclick = (e) => {
           e.stopPropagation();
-          startStepByStepTo(sceneKey, resolvedMarz);
+          if (window.innerWidth <= 768 && typeof toggleChatbot === 'function') toggleChatbot(false);
+          activateGlowRouteFromCurrentSpot(sceneKey, resolvedMarz, true);
         };
         group.appendChild(stepBtn);
       }
+
+      const jumpBtn = document.createElement('button');
+      jumpBtn.type = 'button';
+      jumpBtn.className = 'chat-jump-btn';
+      jumpBtn.innerHTML = '📍 ' + (jumpLabel || SCENE_BUTTON_NAMES[sceneKey] || 'Vào thẳng phòng');
+      jumpBtn.onclick = (e) => {
+        e.stopPropagation();
+        stopStepNavigation();
+        if (window.innerWidth <= 768 && typeof toggleChatbot === 'function') toggleChatbot(false);
+        selectScene(sceneKey, false, marzId || null);
+      };
+      group.appendChild(jumpBtn);
 
       div.appendChild(group);
     }
@@ -4455,8 +4535,17 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
         if (!btnInfo || !SCENES[btnInfo.scene]) return;
         createActionPair(btnInfo.scene, btnInfo.marzId, btnInfo.btnText);
       });
+      // Tự động bật sáng ngay đường đi tới phòng đầu tiên trong kết quả
+      const first = extraButtons[0];
+      if (first && first.scene) {
+        activateGlowRouteFromCurrentSpot(first.scene, first.marzId, false);
+      }
     } else if (targetSceneKey && SCENES[targetSceneKey]) {
       createActionPair(targetSceneKey, specificMarzId, targetLabel);
+      // Khi vừa gõ tìm phòng xong -> Tự động phát sáng nút dẫn đường từ đúng vị trí đang đứng!
+      if (targetSceneKey !== 'overview') {
+        activateGlowRouteFromCurrentSpot(targetSceneKey, specificMarzId, false);
+      }
     }
 
     chatMessagesEl.appendChild(div);
@@ -4465,5 +4554,4 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
 
   appendBotMessage = enhancedAppendBotMessage;
   window.appendBotMessage = enhancedAppendBotMessage;
-  window.startCTECHStepByStepNavigation = startStepByStepTo;
 })();
