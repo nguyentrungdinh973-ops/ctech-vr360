@@ -4529,3 +4529,176 @@ window.triggerMarzipanoSceneInIframe = function(sceneId, sceneTitle) {
   appendBotMessage = enhancedAppendBotMessage;
   window.appendBotMessage = enhancedAppendBotMessage;
 })();
+/* === TỰ ĐỘNG XOAY GÓC NHÌN THẲNG MẶT THEO HƯỚNG DI CHUYỂN TRONG 62 CẢNH 360° === */
+(function setupSmartForwardCameraView() {
+  function normalizeAngle(rad) {
+    while (rad > Math.PI) rad -= 2 * Math.PI;
+    while (rad < -Math.PI) rad += 2 * Math.PI;
+    return rad;
+  }
+
+  function angleDiff(a, b) {
+    return Math.abs(normalizeAngle(a - b));
+  }
+
+  function getMarzAppData() {
+    const frame = document.getElementById('marzipano-frame');
+    if (!frame) return {};
+    try {
+      const innerWin = frame.contentWindow;
+      const innerDoc = frame.contentDocument || innerWin?.document;
+      const appData = innerWin?.APP_DATA;
+      return { frame, innerWin, innerDoc, appData };
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function getActiveSceneId(innerDoc) {
+    if (innerDoc) {
+      const cur = innerDoc.querySelector('#sceneList .scene.current');
+      if (cur && cur.getAttribute('data-id')) {
+        return cur.getAttribute('data-id');
+      }
+    }
+    return typeof currentMarzipanoId !== 'undefined' ? currentMarzipanoId : null;
+  }
+
+  // 1. Chuẩn hóa góc nhìn ban đầu cho toàn bộ 62 cảnh trong APP_DATA (Chống nhìn lên trời hoặc úp mặt vào tường)
+  function calibrateDefaultSceneViews() {
+    const { appData } = getMarzAppData();
+    if (!appData || !Array.isArray(appData.scenes) || appData._ctechViewCalibrated) return;
+    appData._ctechViewCalibrated = true;
+
+    appData.scenes.forEach(sc => {
+      if (!sc.initialViewParameters) return;
+      const iv = sc.initialViewParameters;
+      const links = sc.linkHotspots || [];
+
+      // Kiểm tra các cảnh chưa căn góc trong Marzipano Tool (đang bị mặc định yaw = 0, pitch = 0)
+      const isUncalibratedDefault = (iv.yaw === 0 && iv.pitch === 0);
+
+      if (isUncalibratedDefault && links.length > 0) {
+        if (links.length === 1) {
+          // Nếu là phòng học/phòng KTX (chỉ có 1 nút ở cửa ra vào): Nhìn thẳng vào giữa phòng (ngược hướng cửa 180 độ)
+          iv.yaw = normalizeAngle(links[0].yaw + Math.PI);
+        } else {
+          // Nếu là hành lang/cầu thang: Nhìn thẳng về phía nút di chuyển chính
+          iv.yaw = links[0].yaw;
+        }
+      }
+
+      // Đưa toàn bộ góc ngẩng/cúi (pitch) về đúng tầm mắt nhìn thẳng mặt (0.0 rad)
+      iv.pitch = 0.0;
+      iv.fov = 1.45;
+    });
+  }
+
+  // 2. Tính góc nhìn "thẳng mặt" thông minh khi bước từ cảnh A (fromId) sang cảnh B (toId)
+  function updateTargetSceneViewBeforeSwitch(fromId, toId) {
+    const { appData } = getMarzAppData();
+    if (!appData || !Array.isArray(appData.scenes) || !toId) return;
+
+    calibrateDefaultSceneViews();
+
+    const targetScene = appData.scenes.find(s => s.id === toId);
+    if (!targetScene || !targetScene.initialViewParameters) return;
+
+    const links = targetScene.linkHotspots || [];
+    if (links.length === 0) return;
+
+    // TRƯỜNG HỢP A: Nếu chỉ có 1 nút duy nhất (bước vào phòng học, phòng điện, phòng KTX, sân bóng...)
+    // Nút duy nhất đó chính là cửa quay ra -> Góc nhìn thẳng vào trong phòng là lưng quay lại cửa (+180 độ)
+    if (links.length === 1) {
+      targetScene.initialViewParameters.yaw = normalizeAngle(links[0].yaw + Math.PI);
+      targetScene.initialViewParameters.pitch = 0.0;
+      return;
+    }
+
+    // TRƯỜNG HỢP B: Nếu đang có nút dẫn đường phát sáng (.ctech-next-step-hotspot) hoặc lộ trình tìm phòng
+    // Tự động nhìn thẳng vào nút đi tiếp theo để người dùng thấy ngay mũi tên trước mặt
+    const backLink = fromId ? links.find(l => l.target === fromId) : null;
+    const forwardLinks = fromId ? links.filter(l => l.target !== fromId) : links;
+
+    if (forwardLinks.length === 1) {
+      // Hành lang hoặc cầu thang 2 đầu (như Hành lang tầng 3 KTX N02): Nhìn thẳng vào mũi tên đi tiếp!
+      targetScene.initialViewParameters.yaw = forwardLinks[0].yaw;
+      targetScene.initialViewParameters.pitch = 0.04;
+      return;
+    }
+
+    if (backLink && forwardLinks.length > 1) {
+      // Ngã ba / Ngã tư / Sảnh lớn: Tính hướng đi thẳng tự nhiên (ngược với hướng vừa bước vào 180 độ)
+      const straightAheadYaw = normalizeAngle(backLink.yaw + Math.PI);
+
+      // Tìm nút mũi tên phía trước nằm gần trục đi thẳng nhất
+      let bestLink = forwardLinks[0];
+      let minDiff = angleDiff(bestLink.yaw, straightAheadYaw);
+
+      forwardLinks.forEach(candidate => {
+        const d = angleDiff(candidate.yaw, straightAheadYaw);
+        if (d < minDiff) {
+          minDiff = d;
+          bestLink = candidate;
+        }
+      });
+
+      // Nếu có mũi tên nằm trong góc nhìn phía trước (< 75 độ) thì nhìn thẳng vào mũi tên đó, ngược lại nhìn thẳng theo trục bước tới
+      targetScene.initialViewParameters.yaw = (minDiff <= 1.3) ? bestLink.yaw : straightAheadYaw;
+      targetScene.initialViewParameters.pitch = 0.02;
+    }
+  }
+
+  // 3. Bắt sự kiện ngay khoảnh khắc người dùng bấm vào nút mũi tên (.link-hotspot) hoặc chọn Menu
+  function bindSmartViewHooks() {
+    const { innerDoc, appData } = getMarzAppData();
+    if (!innerDoc || !appData || !Array.isArray(appData.scenes)) return;
+
+    calibrateDefaultSceneViews();
+
+    if (!innerDoc._ctechSmartViewBound) {
+      innerDoc._ctechSmartViewBound = true;
+
+      // Gắn thuộc tính nhận diện đích đến cho toàn bộ các nút mũi tên
+      const allHotspotEls = Array.from(innerDoc.querySelectorAll('.link-hotspot'));
+      let idx = 0;
+      appData.scenes.forEach(sc => {
+        (sc.linkHotspots || []).forEach(lh => {
+          const el = allHotspotEls[idx++];
+          if (el) {
+            el.setAttribute('data-source-id', sc.id);
+            el.setAttribute('data-target-id', lh.target);
+          }
+        });
+      });
+
+      // Khi người dùng chạm hoặc bấm vào bất kỳ nút mũi tên nào: Cập nhật góc nhìn thẳng mặt TRƯỚC khi Marzipano chuyển cảnh
+      ['mousedown', 'touchstart', 'click'].forEach(evtName => {
+        innerDoc.addEventListener(evtName, (e) => {
+          const hs = e.target.closest('.link-hotspot');
+          if (!hs) return;
+          const fromId = hs.getAttribute('data-source-id') || getActiveSceneId(innerDoc);
+          const toId = hs.getAttribute('data-target-id');
+          if (toId) {
+            updateTargetSceneViewBeforeSwitch(fromId, toId);
+          }
+        }, true);
+      });
+    }
+  }
+
+  // Bọc thêm vào hàm mở cảnh từ Menu bên trái và Chatbot
+  const origTrigger = window.triggerMarzipanoSceneInIframe;
+  if (typeof origTrigger === 'function') {
+    window.triggerMarzipanoSceneInIframe = function (sceneId) {
+      const { innerDoc } = getMarzAppData();
+      const fromId = getActiveSceneId(innerDoc);
+      updateTargetSceneViewBeforeSwitch(fromId, sceneId);
+      return origTrigger.apply(this, arguments);
+    };
+  }
+
+  window.addEventListener('DOMContentLoaded', bindSmartViewHooks);
+  window.addEventListener('load', bindSmartViewHooks);
+  setInterval(bindSmartViewHooks, 500);
+})();
